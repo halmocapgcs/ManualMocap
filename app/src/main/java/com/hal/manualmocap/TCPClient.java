@@ -39,7 +39,7 @@ public class TCPClient {
         if (out != null && !out.checkError()) {
             out.println(message);
             out.flush();
-            //Log.d("PPRZ_info", "tcp msgsend (tcpclient):" +message);
+            Log.d("PPRZ_info", "tcp msgsend (tcpclient):" +message);
         }
     }
 
@@ -69,7 +69,6 @@ public class TCPClient {
 
                 //receive the message which the server sends back
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
                 //in this while the client listens for the messages sent by the server
                 while (mRun) {
 

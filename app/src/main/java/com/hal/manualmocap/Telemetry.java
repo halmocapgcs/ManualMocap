@@ -8,6 +8,8 @@ import android.widget.Toast;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.util.ArrayList;
+
 
 /**
  * Created by benwelton on 3/5/17.
@@ -34,13 +36,15 @@ public class Telemetry {
     private DatagramPacket packet;
     private String String2parse;
     private String String2parse_buf = "";
-    private DatagramSocket socket = null;
+    private DatagramSocket socket;
     int AcId = 1;
 
     public void setup_udp() {
+        Log.d("PPRZ", "" + UdpListenPort);
         try {
             socket = new DatagramSocket(UdpListenPort);
-            socket.setSoTimeout(150); //This is needed to prevent udp read lock
+            //Log.d("PPRZ", "" + socket.isClosed());
+            socket.setSoTimeout(150);//This is needed to prevent udp read lock
         } catch (SocketException e) {
             e.printStackTrace();
             if (DEBUG) Log.d("PPRZ_exception", "Udp SocketException");
@@ -92,7 +96,9 @@ public class Telemetry {
         }
 
         if (LastTelemetryString.matches("(^ground WAYPOINT_MOVED .*)")) {
-            Toast.makeText(context, "UCP reading properly", Toast.LENGTH_SHORT).show();
+            //Log.d("UDP", "Parse begin");
+
+            //sample method leads to send data to server via tcp
             get_new_aircraft_data(AcId);
         }
 
@@ -103,14 +109,69 @@ public class Telemetry {
 
     public void parse_tcp_string(String LastTelemetryString) {
         if (LastTelemetryString.matches("(^AppServer ACd .*)")) {
-            Toast.makeText(context, "TCP tester", Toast.LENGTH_SHORT).show();
+            //fill in here with respose to confirmation message from server
         }
     }
 
     private void get_new_aircraft_data(int AcId) {
+        //sends message to tcp
         SendToTcp = ("getac " + AcId);
     }
 
+    public class AirCraft {     //Class to hold aircraft data
+
+        public boolean EngineStatusChanged = false;
+        boolean isVisible = true;
+        boolean AC_Enabled = false;     //Is AC being shown on ui? This also confirms that AC has all its data to shown in ui
+        boolean MarkersEnabled = false;    //Markers data has been received and parsed
+        boolean BlocksEnabled = false;  //Block data has been received and parsed
+        boolean AcReady = false;   //AC has its all data to be ready to show in UI. After showing it AC_Enabled flag will be true.
+        int AC_Id;
+        String AC_Name;
+        String AC_Color;
+        String AC_Type;
+        String AC_LaunchID;
+        String AC_KillID;
+        int AC_AltID;
+        String AC_DlAlt;
+       // Marker AC_Marker;
+        Bitmap AC_Logo;
+        Bitmap AC_Carrot_Logo;
+        //Marker AC_Carrot_Marker;
+        //LatLng AC_Carrot_Position;
+        //Queue<LatLng> AC_Path;
+
+        String Altitude;
+        boolean Altitude_Changed = false;
+        String AGL;
+
+        String Heading = "0";
+        String Speed;
+        String Roll = "0";
+        String Pitch = "0";
+        String Throttle;
+        String AirSpeed = "N/A";
+        boolean ApStatusChanged = false;
+        String FlightTime;
+        String ApMode;
+        String GpsMode;
+        String StateFilterMode;
+        String Battery;
+        boolean AC_Position_Changed = false;
+
+        int NumbOfWps = 1;
+
+        boolean NewMarkerAdded = false;
+        boolean MarkerModified = false;
+
+        int SelectedBlock = 1;
+
+        int BlockCount;
+        boolean NewBlockAdded = false;
+
+        boolean AirspeedEnabled = false;
+        boolean AirspeedChanged = false;
+    }
 }
 
 

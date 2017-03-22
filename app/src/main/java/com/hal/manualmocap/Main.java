@@ -19,9 +19,10 @@ public class Main extends AppCompatActivity {
     public static final String SERVER_PORT_ADDRESS = "server_port_number_text";
     public static final String LOCAL_PORT_ADDRESS = "local_port_number_text";
     //public static final String MIN_AIRSPEED = "minimum_air_speed";
-    boolean DEBUG=true;
+    boolean DEBUG=false;
     boolean TcpSettingsChanged;
     boolean UdpSettingsChanged;
+    String AppPassword;
 
     public Telemetry AC_DATA;
     SharedPreferences AppSettings;
@@ -42,9 +43,9 @@ public class Main extends AppCompatActivity {
         AC_DATA = new Telemetry();
 
         //sub in values
-        AC_DATA.ServerIp = AppSettings.getString(SERVER_IP_ADDRESS, getString(R.string.pref_ip_address_default));
-        AC_DATA.ServerTcpPort = Integer.parseInt(AppSettings.getString(SERVER_PORT_ADDRESS, getString(R.string.pref_port_number_default)));
-        AC_DATA.UdpListenPort = Integer.parseInt(AppSettings.getString(LOCAL_PORT_ADDRESS, getString(R.string.pref_local_port_number_default)));
+        AC_DATA.ServerIp = "192.168.50.10";//AppSettings.getString(SERVER_IP_ADDRESS, getString(R.string.pref_ip_address_default));
+        AC_DATA.ServerTcpPort = 5010;//Integer.parseInt(AppSettings.getString(SERVER_PORT_ADDRESS, getString(R.string.pref_port_number_default)));
+        AC_DATA.UdpListenPort = 5005;//nteger.parseInt(AppSettings.getString(LOCAL_PORT_ADDRESS, getString(R.string.pref_local_port_number_default)));
         AC_DATA.DEBUG=DEBUG;
         AC_DATA.context = getApplicationContext();
         //AC_DATA.AirSpeedMinSetting = parseDouble(AppSettings.getString(MIN_AIRSPEED, "10"));
@@ -56,6 +57,7 @@ public class Main extends AppCompatActivity {
 
     private void set_up_app() {
         AppSettings = PreferenceManager.getDefaultSharedPreferences(this);
+        AppPassword = "1234";
 
         //setup joysticks
         xView1 = (TextView)findViewById(R.id.x_position);
@@ -104,11 +106,11 @@ public class Main extends AppCompatActivity {
 
     private void send_to_server(String StrToSend, boolean ControlString) {
         //Is it a control string ? else ->Data request
-        //if (ControlString) {
-        //    AC_DATA.SendToTcp = AppPassword + " " + StrToSend;
-        //} else {
+        if (ControlString) {
+            AC_DATA.SendToTcp = AppPassword + " " + StrToSend;
+        } else {
             AC_DATA.SendToTcp = StrToSend;
-        //}
+        }
     }
 
         @Override
@@ -145,7 +147,7 @@ public class Main extends AppCompatActivity {
 
         AC_DATA.mTcpClient.sendMessage("removeme");
         //TelemetryAsyncTask.isCancelled();
-        //AC_DATA.mTcpClient.stopClient();
+        AC_DATA.mTcpClient.stopClient();
         isTaskRunning= false;
 
     }
@@ -232,6 +234,7 @@ public class Main extends AppCompatActivity {
                 public void messageReceived(String message) {
                     //this method calls the onProgressUpdate
                     //publishProgress(message);
+                    //Log.d("TCPParse", "Begin TCP parse");
                     AC_DATA.parse_tcp_string(message);
 
                 }
