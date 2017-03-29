@@ -37,6 +37,9 @@ public class Main extends AppCompatActivity {
     JStick js1, js2;
     TextView xView1, xView2, yView1, yView2;
 
+
+    int throttle, yaw, roll, pitch;
+
     private void setup_telemetry_class() {
 
         //Create com.hal.manualmocap.Telemetry class
@@ -76,6 +79,8 @@ public class Main extends AppCompatActivity {
                 js1.drawStick(arg1);
                 if(arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) {
+                    AC_DATA.throttle = js1.getY();
+                    AC_DATA.yaw = js1.getX();
                     xView1.setText("X : " + String.valueOf(js1.getX()));
                     yView1.setText("Y : " + String.valueOf(js1.getY()));
                 }
@@ -92,6 +97,8 @@ public class Main extends AppCompatActivity {
                 js2.drawStick(arg1);
                 if(arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) {
+                    AC_DATA.roll = js2.getX();
+                    AC_DATA.pitch = js2.getY();
                     xView2.setText("X : " + String.valueOf(js2.getX()));
                     yView2.setText("Y : " + String.valueOf(js2.getY()));
                 }
