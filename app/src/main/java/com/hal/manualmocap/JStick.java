@@ -22,6 +22,7 @@ public class JStick {
 
     private int position_x = 0, position_y = 0, min_distance = 0;
     private float distance = 0;
+    private float angle = 0;
 
     private Bitmap stick;
     private DrawCanvas draw;
@@ -57,7 +58,7 @@ public class JStick {
         position_x = (int) (arg1.getX() - (params.width / 2));
         position_y = (int) ((params.height/2)- arg1.getY());
         distance = (float) Math.sqrt(Math.pow(position_x, 2) + Math.pow(position_y, 2));
-
+        angle = (float) cal_angle(position_x, position_y);
 
         if(arg1.getAction() == MotionEvent.ACTION_DOWN) {
             if(distance <= (params.width / 2) - OFFSET) {
@@ -101,6 +102,8 @@ public class JStick {
 
     public int getX() {
         if(touch_state) {
+            if(position_x > 127) return 127;
+            if(position_x < -127) return -127;
             return position_x;
         }
         return 0;
@@ -108,7 +111,17 @@ public class JStick {
 
     public int getY() {
         if(touch_state) {
+            if(position_y > 127) return 127;
+            if(position_y < -127) return -127;
             return position_y;
+        }
+        return 0;
+    }
+
+    public int getDirection() {
+        if(distance > min_distance && touch_state){
+            if((angle >= 225 && angle <= 315) || (angle >= 45 && angle <= 135)) return 1;
+            if((angle >= 315 || angle <= 45) || (angle >= 135 && angle <= 225)) return 2;
         }
         return 0;
     }

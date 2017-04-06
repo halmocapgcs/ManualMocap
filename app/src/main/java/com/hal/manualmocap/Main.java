@@ -77,16 +77,23 @@ public class Main extends AppCompatActivity {
         layout_joystick_left.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View arg0, MotionEvent arg1) {
                 js1.drawStick(arg1);
-                if(arg1.getAction() == MotionEvent.ACTION_DOWN
-                        || arg1.getAction() == MotionEvent.ACTION_MOVE) {
-                    AC_DATA.throttle = js1.getY();
+                if((arg1.getAction() == MotionEvent.ACTION_DOWN
+                        || arg1.getAction() == MotionEvent.ACTION_MOVE) && js1.getDirection() == 1) {
+                    if(js1.getY()>=0) AC_DATA.throttle = js1.getY();
+                    else AC_DATA.throttle = 0;
+                    xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
+                    yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
+                }
+                if((arg1.getAction() == MotionEvent.ACTION_DOWN
+                        || arg1.getAction() == MotionEvent.ACTION_MOVE) && js1.getDirection() == 2) {
                     AC_DATA.yaw = js1.getX();
-                    xView1.setText("X : " + String.valueOf(js1.getX()));
-                    yView1.setText("Y : " + String.valueOf(js1.getY()));
+                    xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
+                    yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
                 else if(arg1.getAction() == MotionEvent.ACTION_UP) {
+                    AC_DATA.yaw = 0;
                     xView1.setText("X : 0");
-                    yView1.setText("Y : 0");
+                    yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
                 return true;
             }
@@ -98,11 +105,13 @@ public class Main extends AppCompatActivity {
                 if(arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) {
                     AC_DATA.roll = js2.getX();
-                    AC_DATA.pitch = js2.getY();
+                    AC_DATA.pitch = -js2.getY();
                     xView2.setText("X : " + String.valueOf(js2.getX()));
                     yView2.setText("Y : " + String.valueOf(js2.getY()));
                 }
                 else if(arg1.getAction() == MotionEvent.ACTION_UP) {
+                    AC_DATA.roll = 0;
+                    AC_DATA.pitch = 0;
                     xView2.setText("X : 0");
                     yView2.setText("Y : 0");
                 }

@@ -37,7 +37,7 @@ public class Telemetry {
     private String String2parse;
     private String String2parse_buf = "";
     private DatagramSocket socket;
-    int AcId = 1;
+    int AcId = 31;
     int yaw, throttle, roll, pitch;
 
     public void setup_udp() {
@@ -70,6 +70,7 @@ public class Telemetry {
                 String2parse=null;
             }
 
+            //get_new_aircraft_data(AcId);
             publish_joystick_info(AcId, yaw, throttle, roll, pitch);
 
         } catch (Exception e) {
@@ -118,8 +119,8 @@ public class Telemetry {
     }
 
     public void publish_joystick_info(int AcId, int yaw, int throttle, int roll, int pitch) {
-        SendToTcp = ("joyinfo" + AcId + throttle + roll + pitch + yaw);
-        Log.d("Joy", SendToTcp);
+        SendToTcp = ("joyinfo" + " " + "0" + " " + throttle + " " + roll + " " + pitch + " " + yaw);
+        //Log.d("Joy", SendToTcp);
     }
 }
 

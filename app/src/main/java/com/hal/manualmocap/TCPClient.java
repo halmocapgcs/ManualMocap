@@ -19,7 +19,7 @@ public class TCPClient {
     public String SERVERIP = "192.168.50.10"; //server ip
     public int SERVERPORT = 5010;
     private OnMessageReceived mMessageListener = null;
-    private boolean mRun = false;
+    public boolean mRun = false;
 
     PrintWriter out;
     BufferedReader in;
@@ -39,7 +39,7 @@ public class TCPClient {
         if (out != null && !out.checkError()) {
             out.println(message);
             out.flush();
-            Log.d("PPRZ_info", "tcp msgsend (tcpclient):" +message);
+            //Log.d("PPRZ_info", "tcp msgsend (tcpclient):" +message);
         }
     }
 
@@ -71,7 +71,6 @@ public class TCPClient {
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 //in this while the client listens for the messages sent by the server
                 while (mRun) {
-
                     serverMessage = in.readLine();
 
                     if (serverMessage != null && mMessageListener != null) {
