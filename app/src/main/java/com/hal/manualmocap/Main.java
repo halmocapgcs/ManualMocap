@@ -78,7 +78,8 @@ public class Main extends AppCompatActivity {
             public boolean onTouch(View arg0, MotionEvent arg1) {
                 js1.drawStick(arg1);
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
-                        || arg1.getAction() == MotionEvent.ACTION_MOVE) && js1.getDirection() == 1) {
+                        || arg1.getAction() == MotionEvent.ACTION_MOVE) && (js1.getDirection() == 1 ||
+                        Math.abs(js1.getX()) < 30)) {
                     if(js1.getY()>=0) AC_DATA.throttle = js1.getY();
                     else AC_DATA.throttle = 0;
                     xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
@@ -104,8 +105,8 @@ public class Main extends AppCompatActivity {
                 js2.drawStick(arg1);
                 if(arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) {
-                    AC_DATA.roll = js2.getX();
-                    AC_DATA.pitch = -js2.getY();
+                    AC_DATA.roll = js2.getX()/2;
+                    AC_DATA.pitch = -js2.getY()/2;
                     xView2.setText("X : " + String.valueOf(js2.getX()));
                     yView2.setText("Y : " + String.valueOf(js2.getY()));
                 }
