@@ -17,7 +17,7 @@
         android:orientation="vertical"
         android:layout_alignParentTop="true"
         android:layout_alignParentStart="true">
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -29,7 +29,7 @@
                 android:layout_height="300dp"
                 android:orientation="horizontal"
                 android:background="@drawable/image_button_bg"
-                android:layout_marginEnd="550dp">
+                android:layout_alignParentLeft="true">
             </RelativeLayout>
 
             <RelativeLayout
@@ -37,9 +37,22 @@
                 android:layout_width="300dp"
                 android:layout_height="300dp"
                 android:orientation="horizontal"
-                android:background="@drawable/image_button_bg" >
+                android:background="@drawable/image_button_bg"
+                android:layout_alignParentRight="true">
             </RelativeLayout>
-        </LinearLayout>
+
+            <RelativeLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_toEndOf="@id/layout_joystick_left"
+                android:layout_toStartOf="@id/layout_joystick_right"
+                android:layout_alignBottom="@id/layout_joystick_left">
+                <VideoView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:id="@+id/VideoView1"/>
+            </RelativeLayout>
+        </RelativeLayout>
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -50,7 +63,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_alignParentStart="true"
+                android:layout_alignParentLeft="true"
                 android:layout_marginStart="140dp"
                 >
                 <TextView
@@ -67,7 +80,7 @@
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
+                android:layout_alignParentRight="true"
                 android:layout_marginEnd="150dp"
                 android:orientation="vertical" >
                 <TextView
@@ -81,9 +94,21 @@
                     android:layout_height="wrap_content"
                     android:text="Y:"/>
             </LinearLayout>
+
         </RelativeLayout>
 
-
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <Button
+                android:id="@+id/power_button"
+                android:layout_width="75dp"
+                android:layout_height="75dp"
+                android:layout_centerInParent="true"
+                android:background="@drawable/power_button"
+                    >
+            </Button>
+        </RelativeLayout>
     </LinearLayout>
 
 </RelativeLayout>

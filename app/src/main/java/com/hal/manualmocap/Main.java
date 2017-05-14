@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -18,7 +19,7 @@ public class Main extends AppCompatActivity {
     public static final String SERVER_IP_ADDRESS = "server_ip_adress_text";
     public static final String SERVER_PORT_ADDRESS = "server_port_number_text";
     public static final String LOCAL_PORT_ADDRESS = "local_port_number_text";
-    //public static final String MIN_AIRSPEED = "minimum_air_speed";
+
     boolean DEBUG=false;
     boolean TcpSettingsChanged;
     boolean UdpSettingsChanged;
@@ -33,12 +34,10 @@ public class Main extends AppCompatActivity {
 
     //joystick variables
     RelativeLayout layout_joystick_left, layout_joystick_right;
+    Button power_button;
 
     JStick js1, js2;
     TextView xView1, xView2, yView1, yView2;
-
-
-    int throttle, yaw, roll, pitch;
 
     private void setup_telemetry_class() {
 
@@ -51,7 +50,6 @@ public class Main extends AppCompatActivity {
         AC_DATA.UdpListenPort = 5005;//nteger.parseInt(AppSettings.getString(LOCAL_PORT_ADDRESS, getString(R.string.pref_local_port_number_default)));
         AC_DATA.DEBUG=DEBUG;
         AC_DATA.context = getApplicationContext();
-        //AC_DATA.AirSpeedMinSetting = parseDouble(AppSettings.getString(MIN_AIRSPEED, "10"));
 
         //AC_DATA.prepare_class();
         AC_DATA.setup_udp();
@@ -70,27 +68,34 @@ public class Main extends AppCompatActivity {
 
         layout_joystick_left = (RelativeLayout)findViewById(R.id.layout_joystick_left);
         layout_joystick_right = (RelativeLayout)findViewById(R.id.layout_joystick_right);
+        power_button = (Button)findViewById(R.id.power_button);
 
         js1 = new JStick(getApplicationContext(), layout_joystick_left, R.drawable.image_button);
         js2 = new JStick(getApplicationContext(), layout_joystick_right, R.drawable.image_button);
 
+        //joystick for throttle and yaw
         layout_joystick_left.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View arg0, MotionEvent arg1) {
                 js1.drawStick(arg1);
+                //checks to see if the joystick is in the throttle region
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) && (js1.getDirection() == 1 ||
                         Math.abs(js1.getX()) < 30)) {
-                    if(js1.getY()>=0) AC_DATA.throttle = js1.getY();
-                    else AC_DATA.throttle = 0;
+                    AC_DATA.throttle = (js1.getY() + 127)/2;
+                    //TODO mystery value at edge case
                     xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
                     yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
-                if((arg1.getAction() == MotionEvent.ACTION_DOWN
-                        || arg1.getAction() == MotionEvent.ACTION_MOVE) && js1.getDirection() == 2) {
-                    AC_DATA.yaw = js1.getX();
+                //checks to see if the joystick is in the yaw region
+                else if((arg1.getAction() == MotionEvent.ACTION_DOWN
+                        || arg1.getAction() == MotionEvent.ACTION_MOVE) && (js1.getDirection()
+                        == 2 && Math.abs(js1.getX()) > 40)) {
+                    if(js1.getX()>0) AC_DATA.yaw = 20;      //right button for yaw
+                    if(js1.getX()<0) AC_DATA.yaw = -20;     //left button for yaw
                     xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
                     yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
+                //reset value of yaw but not throttle when lifting up
                 else if(arg1.getAction() == MotionEvent.ACTION_UP) {
                     AC_DATA.yaw = 0;
                     xView1.setText("X : 0");
@@ -100,6 +105,7 @@ public class Main extends AppCompatActivity {
             }
         });
 
+        //joystick for pitch and roll
         layout_joystick_right.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View arg0, MotionEvent arg1) {
                 js2.drawStick(arg1);
@@ -110,6 +116,7 @@ public class Main extends AppCompatActivity {
                     xView2.setText("X : " + String.valueOf(js2.getX()));
                     yView2.setText("Y : " + String.valueOf(js2.getY()));
                 }
+                //reset both values to zero when lifting up
                 else if(arg1.getAction() == MotionEvent.ACTION_UP) {
                     AC_DATA.roll = 0;
                     AC_DATA.pitch = 0;
@@ -119,16 +126,32 @@ public class Main extends AppCompatActivity {
                 return true;
             }
         });
+
+        //power button to start the rotors
+        power_button.setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View arg0, MotionEvent arg1) {
+                if(arg1.getAction() == MotionEvent.ACTION_DOWN
+                        || arg1.getAction() == MotionEvent.ACTION_MOVE){
+                    AC_DATA.yaw = -127;
+                    AC_DATA.throttle = 0;
+                }
+                else if(arg1.getAction() == MotionEvent.ACTION_UP){
+                    AC_DATA.yaw = 0;
+                    AC_DATA.throttle = 0;
+                }
+                return true;
+            }
+        });
     }
 
-    private void send_to_server(String StrToSend, boolean ControlString) {
+    /*private void send_to_server(String StrToSend, boolean ControlString) {
         //Is it a control string ? else ->Data request
         if (ControlString) {
             AC_DATA.SendToTcp = AppPassword + " " + StrToSend;
         } else {
             AC_DATA.SendToTcp = StrToSend;
         }
-    }
+    }*/
 
         @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -168,8 +191,6 @@ public class Main extends AppCompatActivity {
         isTaskRunning= false;
 
     }
-
-    //!!Todo connect_to_server method and listener
 
     class ReadTelemetry extends AsyncTask<String, String, String> {
 
@@ -226,12 +247,7 @@ public class Main extends AppCompatActivity {
                     publishProgress("ee");
                     AC_DATA.ViewChanged = false;
                 }
-
-
-
-
             }
-
             if (DEBUG) Log.d("PPRZ_info", "Stopping AsyncTask ..");
             return null;
         }
