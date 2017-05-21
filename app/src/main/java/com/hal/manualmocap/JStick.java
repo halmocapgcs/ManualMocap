@@ -17,22 +17,23 @@ public class JStick {
 
     private Context mContext;
     private ViewGroup mLayout;
-    private ViewGroup.LayoutParams params;
+    public ViewGroup.LayoutParams params;
     private int stick_width, stick_height;
+    private String stick_type;
 
-    private int position_x = 0, position_y = 0, min_distance = 0;
-    private float distance = 0;
-    private float angle = 0;
+    public int position_x = 0, position_y = 0, min_distance = 0, stored_throttle;
+    public float distance = 0;
+    public float angle = 0;
 
     private Bitmap stick;
     private DrawCanvas draw;
     private Paint paint;
 
-    private int OFFSET = 50;
+    public int OFFSET = 50;
 
     private boolean touch_state = false;
 
-    public JStick(Context context, ViewGroup layout, int stick_res_id) {
+    public JStick(Context context, ViewGroup layout, int stick_res_id, String type) {
         mContext = context;
         mLayout = layout;
 
@@ -40,6 +41,7 @@ public class JStick {
 
         stick_width = stick.getWidth();
         stick_height = stick.getHeight();
+        stick_type = type;
 
         draw = new DrawCanvas(mContext);
         paint = new Paint();
@@ -95,7 +97,23 @@ public class JStick {
             }
         }
         else if(arg1.getAction() == MotionEvent.ACTION_UP) {
-            mLayout.removeView(draw);
+            if(stick_type.equals("PITCH")) {
+                draw.position(params.width / 2, params.height / 2);
+                draw();
+            }
+            else if(stick_type.equals("YAW")){
+                if(Math.abs(position_x) >= 40){
+                    draw.position(params.width/2, params.height/2 - stored_throttle);
+                }
+                else{
+                    draw.position(params.width/2, params.height/2 - position_y);
+                }
+                draw();
+            }
+            else{
+                mLayout.removeView(draw);
+            }
+
             touch_state = false;
         }
     }
@@ -118,12 +136,12 @@ public class JStick {
         return 0;
     }
 
-    public int getDirection() {
-        if(distance > min_distance && touch_state){
-            if((angle >= 225 && angle <= 315) || (angle >= 45 && angle <= 135)) return 1;
-            if((angle >= 315 || angle <= 45) || (angle >= 135 && angle <= 225)) return 2;
+    public int getThrottle() {
+        if(touch_state) {
+            if (position_y > 100) return 100;
+            if (position_y < -127) return -127;
         }
-        return 0;
+        return position_y;
     }
 
     private double cal_angle(float x, float y) {

@@ -28,7 +28,7 @@
                 android:layout_width="300dp"
                 android:layout_height="300dp"
                 android:orientation="horizontal"
-                android:background="@drawable/image_button_bg"
+                android:background="@drawable/image_button_bg_throttle"
                 android:layout_alignParentLeft="true">
             </RelativeLayout>
 
@@ -37,21 +37,11 @@
                 android:layout_width="300dp"
                 android:layout_height="300dp"
                 android:orientation="horizontal"
-                android:background="@drawable/image_button_bg"
+                android:background="@drawable/image_button_bg_normal"
                 android:layout_alignParentRight="true">
             </RelativeLayout>
 
-            <RelativeLayout
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_toEndOf="@id/layout_joystick_left"
-                android:layout_toStartOf="@id/layout_joystick_right"
-                android:layout_alignBottom="@id/layout_joystick_left">
-                <VideoView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:id="@+id/VideoView1"/>
-            </RelativeLayout>
+
         </RelativeLayout>
 
         <RelativeLayout

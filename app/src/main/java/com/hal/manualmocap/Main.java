@@ -39,6 +39,8 @@ public class Main extends AppCompatActivity {
     JStick js1, js2;
     TextView xView1, xView2, yView1, yView2;
 
+    public static final int pitchRoll = 21;
+
     private void setup_telemetry_class() {
 
         //Create com.hal.manualmocap.Telemetry class
@@ -70,8 +72,8 @@ public class Main extends AppCompatActivity {
         layout_joystick_right = (RelativeLayout)findViewById(R.id.layout_joystick_right);
         power_button = (Button)findViewById(R.id.power_button);
 
-        js1 = new JStick(getApplicationContext(), layout_joystick_left, R.drawable.image_button);
-        js2 = new JStick(getApplicationContext(), layout_joystick_right, R.drawable.image_button);
+        js1 = new JStick(getApplicationContext(), layout_joystick_left, R.drawable.image_button, "YAW");
+        js2 = new JStick(getApplicationContext(), layout_joystick_right, R.drawable.image_button, "PITCH");
 
         //joystick for throttle and yaw
         layout_joystick_left.setOnTouchListener(new View.OnTouchListener() {
@@ -79,17 +81,16 @@ public class Main extends AppCompatActivity {
                 js1.drawStick(arg1);
                 //checks to see if the joystick is in the throttle region
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
-                        || arg1.getAction() == MotionEvent.ACTION_MOVE) && (js1.getDirection() == 1 ||
-                        Math.abs(js1.getX()) < 30)) {
-                    AC_DATA.throttle = (js1.getY() + 127)/2;
-                    //TODO mystery value at edge case
+                        || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) < 60) {
+                    js1.stored_throttle = js1.getY();
+                    if(js1.distance >= (js1.params.width/2 - js1.OFFSET)) AC_DATA.throttle = 0;  //edge case
+                    else AC_DATA.throttle = (int) ((js1.getThrottle() + 127)/6.5) + 75;
                     xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
                     yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
                 //checks to see if the joystick is in the yaw region
                 else if((arg1.getAction() == MotionEvent.ACTION_DOWN
-                        || arg1.getAction() == MotionEvent.ACTION_MOVE) && (js1.getDirection()
-                        == 2 && Math.abs(js1.getX()) > 40)) {
+                        || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) >= 72) {
                     if(js1.getX()>0) AC_DATA.yaw = 20;      //right button for yaw
                     if(js1.getX()<0) AC_DATA.yaw = -20;     //left button for yaw
                     xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
@@ -109,15 +110,31 @@ public class Main extends AppCompatActivity {
         layout_joystick_right.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View arg0, MotionEvent arg1) {
                 js2.drawStick(arg1);
-                if(arg1.getAction() == MotionEvent.ACTION_DOWN
-                        || arg1.getAction() == MotionEvent.ACTION_MOVE) {
-                    AC_DATA.roll = js2.getX()/2;
-                    AC_DATA.pitch = -js2.getY()/2;
-                    xView2.setText("X : " + String.valueOf(js2.getX()));
-                    yView2.setText("Y : " + String.valueOf(js2.getY()));
+                if((arg1.getAction() == MotionEvent.ACTION_DOWN
+                        || arg1.getAction() == MotionEvent.ACTION_MOVE) &&
+                        js2.distance > 8) {
+                    //the offsets add a slightly larger region where values are (0,0) in order
+                    //to avoid mistakenly pressing down near the center and activating the pitch/roll
+                    double angle = js2.angle*(Math.PI/180);
+                    double xoffset = 8*(Math.cos(angle));
+                    double yoffset = 8*(Math.sin(angle));
+                    AC_DATA.roll = (int) (js2.getX()/1.9 - xoffset/1.9);
+                    AC_DATA.pitch = (int) -(js2.getY()/1.9 - yoffset/1.9);
+                    //set limits for pitch and yaw
+                    //note the integer steps for certain regions exist because our drone is back, right
+                    //heavy
+                    if(AC_DATA.roll >= pitchRoll) AC_DATA.roll = pitchRoll;
+                    else if(AC_DATA.roll <= -pitchRoll-10) AC_DATA.roll = -pitchRoll-10;
+                    if(AC_DATA.pitch >= pitchRoll) AC_DATA.pitch = pitchRoll;
+                    else if(AC_DATA.pitch <= -pitchRoll + 4) AC_DATA.pitch = -pitchRoll + 4;
+                    xView2.setText("X : " + String.valueOf(AC_DATA.roll));
+                    yView2.setText("Y : " + String.valueOf(AC_DATA.pitch));
                 }
-                //reset both values to zero when lifting up
-                else if(arg1.getAction() == MotionEvent.ACTION_UP) {
+                //reset both values to zero when lifting up or in central zone
+                else if(arg1.getAction() == MotionEvent.ACTION_UP || (
+                        (arg1.getAction() == MotionEvent.ACTION_DOWN
+                        || arg1.getAction() == MotionEvent.ACTION_MOVE) &&
+                        js2.distance <= 8)) {
                     AC_DATA.roll = 0;
                     AC_DATA.pitch = 0;
                     xView2.setText("X : 0");
