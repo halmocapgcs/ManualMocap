@@ -97,19 +97,22 @@ public class JStick {
             }
         }
         else if(arg1.getAction() == MotionEvent.ACTION_UP) {
-            if(stick_type.equals("PITCH")) {
+            if(stick_type.equals("PITCH")||stick_type.equals("YAW")) {
                 draw.position(params.width / 2, params.height / 2);
                 draw();
             }
-            else if(stick_type.equals("YAW")){
-                if(Math.abs(position_x) >= 40){
-                    draw.position(params.width/2, params.height/2 - stored_throttle);
-                }
-                else{
-                    draw.position(params.width/2, params.height/2 - position_y);
-                }
-                draw();
-            }
+
+            //old funcitonality for a throttle control that does not snap back to center
+//            else if(stick_type.equals("YAW")){
+//                if(Math.abs(position_x) >= 40){
+//                    draw.position(params.width/2, params.height/2 - stored_throttle);
+//                }
+//                else{
+//                    draw.position(params.width/2, params.height/2 - position_y);
+//                }
+//                draw();
+//            }
+
             else{
                 mLayout.removeView(draw);
             }

@@ -17,15 +17,16 @@ import java.util.ArrayList;
 
 public class Telemetry {
     boolean DEBUG;
+    boolean unopened = true;
+    boolean inspecting = false;
     public String SendToTcp = null;
-
-    //Static values
-    public int MaxNumbOfAC = 25;   //Max aircraft numb
 
     //Visual change flags
     public boolean ViewChanged = false;  //Every function -willing to change UI needs to raise this flag
+    public boolean BatteryChanged = false;
 
     public Context context;
+    public AirCraft AircraftData;
     /*
     Comm variables
      */
@@ -40,22 +41,29 @@ public class Telemetry {
     int AcId = 31;
     int yaw, throttle, roll, pitch;
 
+    public void prepare_class() {
+        //Initial creation
+        AircraftData = new AirCraft();
+    }
+
     public void setup_udp() {
-        Log.d("PPRZ", "" + UdpListenPort);
-        try {
-            socket = new DatagramSocket(UdpListenPort);
-            //Log.d("PPRZ", "" + socket.isClosed());
-            socket.setSoTimeout(150);//This is needed to prevent udp read lock
-        } catch (SocketException e) {
-            e.printStackTrace();
-            if (DEBUG) Log.d("PPRZ_exception", "Udp SocketException");
+        if(unopened) {
+            Log.d("PPRZ", "" + UdpListenPort);
+            try {
+                Main.sSocket = new DatagramSocket(UdpListenPort);
+                Main.sSocket.setSoTimeout(150);//This is needed to prevent udp read lock
+                unopened = false;
+            } catch (SocketException e) {
+                e.printStackTrace();
+                if (DEBUG) Log.d("PPRZ_exception", "Udp SocketException");
+            }
         }
         byte[] buf = new byte[1024];
         packet = new DatagramPacket(buf, buf.length);
 
     }
 
-    public void read_udp_data() {
+    public void read_udp_data(DatagramSocket socket) {
 
         try {
 
@@ -71,7 +79,7 @@ public class Telemetry {
             }
 
             //get_new_aircraft_data(AcId);
-            publish_joystick_info(AcId, yaw, throttle, roll, pitch);
+            if(!inspecting) publish_joystick_info(AcId, yaw, throttle, roll, pitch);
 
         } catch (Exception e) {
             //ignore java.net.SocketTimeoutException
@@ -81,29 +89,20 @@ public class Telemetry {
     }
 
     public void parse_udp_string(String LastTelemetryString) {
-        //!!Todo
-        if (LastTelemetryString.matches("(^ground AP_STATUS .*)")) {
-
-        }
-
-        if (LastTelemetryString.matches("(^ground NAV_STATUS .*)")) {
-
-        }
-
+        //this is just code from the PPRZonDroid app, but only in relation to battery life
+        //Parse ENGINE_STATUS messages
         if (LastTelemetryString.matches("(^ground ENGINE_STATUS .*)")) {
+            String[] ParsedData = LastTelemetryString.split(" ");
 
-        }
+            String bat = ParsedData[7].substring(0, (ParsedData[7].indexOf(".") + 2));
 
-        if (LastTelemetryString.matches("(^ground FLIGHT_PARAM .*)")) {
-
-        }
-
-        if (LastTelemetryString.matches("(^ground WAYPOINT_MOVED .*)")) {
-
-        }
-
-        if (LastTelemetryString.matches("(^ground DL_VALUES .*)")) {
-
+            //If battery is changed this will impact ui
+            if (!(bat.equals(AircraftData.Battery))) {
+                Log.d("PPRZ_info", "Old Battery=" + AircraftData.Battery + " New Battery:" + bat);
+                AircraftData.Battery = bat;
+                BatteryChanged = true;
+                ViewChanged = true;
+            }
         }
     }
 
@@ -119,8 +118,12 @@ public class Telemetry {
     }
 
     public void publish_joystick_info(int AcId, int yaw, int throttle, int roll, int pitch) {
-        SendToTcp = ("joyinfo" + " " + "0" + " " + throttle + " " + roll + " " + pitch + " " + yaw);
+        SendToTcp = ("joyinfo" + " " + "1" + " " + throttle + " " + roll + " " + pitch + " " + yaw);
         //Log.d("Joy", SendToTcp);
+    }
+
+    public class AirCraft{
+        String Battery;
     }
 }
 

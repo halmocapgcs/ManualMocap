@@ -1,6 +1,8 @@
 package com.hal.manualmocap;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
@@ -12,6 +14,8 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import java.net.DatagramSocket;
 
 public class Main extends AppCompatActivity {
 
@@ -32,14 +36,14 @@ public class Main extends AppCompatActivity {
     boolean isTaskRunning;
     private Thread mTCPthread;
 
+    static DatagramSocket sSocket = null;
+
     //joystick variables
     RelativeLayout layout_joystick_left, layout_joystick_right;
-    Button power_button;
+    Button power_button, Button_LaunchInspectionMode;
 
     JStick js1, js2;
-    TextView xView1, xView2, yView1, yView2;
-
-    public static final int pitchRoll = 21;
+    TextView xView1, xView2, yView1, yView2, battery_level;
 
     private void setup_telemetry_class() {
 
@@ -47,13 +51,13 @@ public class Main extends AppCompatActivity {
         AC_DATA = new Telemetry();
 
         //sub in values
-        AC_DATA.ServerIp = "192.168.50.10";//AppSettings.getString(SERVER_IP_ADDRESS, getString(R.string.pref_ip_address_default));
-        AC_DATA.ServerTcpPort = 5010;//Integer.parseInt(AppSettings.getString(SERVER_PORT_ADDRESS, getString(R.string.pref_port_number_default)));
-        AC_DATA.UdpListenPort = 5005;//nteger.parseInt(AppSettings.getString(LOCAL_PORT_ADDRESS, getString(R.string.pref_local_port_number_default)));
+        AC_DATA.ServerIp = "192.168.50.10";
+        AC_DATA.ServerTcpPort = 5010;
+        AC_DATA.UdpListenPort = 5005;
         AC_DATA.DEBUG=DEBUG;
         AC_DATA.context = getApplicationContext();
 
-        //AC_DATA.prepare_class();
+        AC_DATA.prepare_class();
         AC_DATA.setup_udp();
 
     }
@@ -68,12 +72,25 @@ public class Main extends AppCompatActivity {
         xView2 = (TextView)findViewById(R.id.x_position_right);
         yView2 = (TextView)findViewById(R.id.y_position_right);
 
+        //setup battery
+        battery_level = (TextView)findViewById(R.id.battery_level);
+        battery_level.setText("??? v");
+
         layout_joystick_left = (RelativeLayout)findViewById(R.id.layout_joystick_left);
         layout_joystick_right = (RelativeLayout)findViewById(R.id.layout_joystick_right);
         power_button = (Button)findViewById(R.id.power_button);
 
         js1 = new JStick(getApplicationContext(), layout_joystick_left, R.drawable.image_button, "YAW");
         js2 = new JStick(getApplicationContext(), layout_joystick_right, R.drawable.image_button, "PITCH");
+
+        Button_LaunchInspectionMode = (Button) findViewById(R.id.InspectionMode);
+        Button_LaunchInspectionMode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent inspect = new Intent(Main.this, InspectionMode.class);
+                startActivity(inspect);
+            }
+        });
 
         //joystick for throttle and yaw
         layout_joystick_left.setOnTouchListener(new View.OnTouchListener() {
@@ -82,9 +99,10 @@ public class Main extends AppCompatActivity {
                 //checks to see if the joystick is in the throttle region
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) < 60) {
-                    js1.stored_throttle = js1.getY();
-                    if(js1.distance >= (js1.params.width/2 - js1.OFFSET)) AC_DATA.throttle = 0;  //edge case
-                    else AC_DATA.throttle = (int) ((js1.getThrottle() + 127)/6.5) + 75;
+                    //js1.stored_throttle = js1.getY(); had been used for a throttle that doesn't snap back to center
+                    if(js1.getY()>30) AC_DATA.throttle = 84;
+                    else if(js1.getY()<-30) AC_DATA.throttle = 42;
+                    else AC_DATA.throttle = 63;
                     xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
                     yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
@@ -99,6 +117,7 @@ public class Main extends AppCompatActivity {
                 //reset value of yaw but not throttle when lifting up
                 else if(arg1.getAction() == MotionEvent.ACTION_UP) {
                     AC_DATA.yaw = 0;
+					AC_DATA.throttle = 63;
                     xView1.setText("X : 0");
                     yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
@@ -111,30 +130,14 @@ public class Main extends AppCompatActivity {
             public boolean onTouch(View arg0, MotionEvent arg1) {
                 js2.drawStick(arg1);
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
-                        || arg1.getAction() == MotionEvent.ACTION_MOVE) &&
-                        js2.distance > 8) {
-                    //the offsets add a slightly larger region where values are (0,0) in order
-                    //to avoid mistakenly pressing down near the center and activating the pitch/roll
-                    double angle = js2.angle*(Math.PI/180);
-                    double xoffset = 8*(Math.cos(angle));
-                    double yoffset = 8*(Math.sin(angle));
-                    AC_DATA.roll = (int) (js2.getX()/1.9 - xoffset/1.9);
-                    AC_DATA.pitch = (int) -(js2.getY()/1.9 - yoffset/1.9);
-                    //set limits for pitch and yaw
-                    //note the integer steps for certain regions exist because our drone is back, right
-                    //heavy
-                    if(AC_DATA.roll >= pitchRoll) AC_DATA.roll = pitchRoll;
-                    else if(AC_DATA.roll <= -pitchRoll-10) AC_DATA.roll = -pitchRoll-10;
-                    if(AC_DATA.pitch >= pitchRoll) AC_DATA.pitch = pitchRoll;
-                    else if(AC_DATA.pitch <= -pitchRoll + 4) AC_DATA.pitch = -pitchRoll + 4;
+                        || arg1.getAction() == MotionEvent.ACTION_MOVE)) {
+                    AC_DATA.roll = (int) (js2.getX()/4.0f);
+                    AC_DATA.pitch = (int) -(js2.getY()/4.0f);
                     xView2.setText("X : " + String.valueOf(AC_DATA.roll));
                     yView2.setText("Y : " + String.valueOf(AC_DATA.pitch));
                 }
                 //reset both values to zero when lifting up or in central zone
-                else if(arg1.getAction() == MotionEvent.ACTION_UP || (
-                        (arg1.getAction() == MotionEvent.ACTION_DOWN
-                        || arg1.getAction() == MotionEvent.ACTION_MOVE) &&
-                        js2.distance <= 8)) {
+                else if(arg1.getAction() == MotionEvent.ACTION_UP) {
                     AC_DATA.roll = 0;
                     AC_DATA.pitch = 0;
                     xView2.setText("X : 0");
@@ -154,7 +157,7 @@ public class Main extends AppCompatActivity {
                 }
                 else if(arg1.getAction() == MotionEvent.ACTION_UP){
                     AC_DATA.yaw = 0;
-                    AC_DATA.throttle = 0;
+                    AC_DATA.throttle = 63;
                 }
                 return true;
             }
@@ -186,7 +189,7 @@ public class Main extends AppCompatActivity {
     @Override
     protected void onRestart() {
         super.onRestart();
-
+		AC_DATA.setup_udp();
         //Force to reconnect
         //TcpSettingsChanged = true;
         TelemetryAsyncTask = new ReadTelemetry();
@@ -257,7 +260,7 @@ public class Main extends AppCompatActivity {
                 }
 
                 //3 try to read & parse udp data
-                AC_DATA.read_udp_data();
+                AC_DATA.read_udp_data(Main.sSocket);
 
                 //4 check ui changes
                 if (AC_DATA.ViewChanged) {
@@ -267,6 +270,18 @@ public class Main extends AppCompatActivity {
             }
             if (DEBUG) Log.d("PPRZ_info", "Stopping AsyncTask ..");
             return null;
+        }
+
+        @Override
+        protected void onProgressUpdate(String... value) {
+            super.onProgressUpdate(value);
+
+            if (AC_DATA.BatteryChanged) {
+                battery_level.setText(AC_DATA.AircraftData.Battery + " v");
+                if(Double.parseDouble(AC_DATA.AircraftData.Battery) < 10.2){
+                    battery_level.setTextColor(Color.RED);
+                }
+            }
         }
     }
 

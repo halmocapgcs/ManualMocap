@@ -39,7 +39,7 @@ public class TCPClient {
         if (out != null && !out.checkError()) {
             out.println(message);
             out.flush();
-            //Log.d("PPRZ_info", "tcp msgsend (tcpclient):" +message);
+            Log.d("PPRZ_info", "tcp msgsend (tcpclient):" +message);
         }
     }
 
