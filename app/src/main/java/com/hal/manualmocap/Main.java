@@ -5,7 +5,8 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
-import android.support.v7.app.AppCompatActivity;
+import android.support.v7.app.ActionBarActivity;
+//import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -17,7 +18,7 @@ import android.widget.TextView;
 
 import java.net.DatagramSocket;
 
-public class Main extends AppCompatActivity {
+public class Main extends ActionBarActivity {
 
     //telemetry variables
     public static final String SERVER_IP_ADDRESS = "server_ip_adress_text";
@@ -87,7 +88,9 @@ public class Main extends AppCompatActivity {
         Button_LaunchInspectionMode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent inspect = new Intent(Main.this, InspectionMode.class);
+                String url = "file:///sdcard/DCIM/video.sdp";
+                Intent inspect = new Intent(getApplicationContext(), InspectionMode.class);
+                inspect.putExtra("videoUrl", url);
                 startActivity(inspect);
             }
         });
