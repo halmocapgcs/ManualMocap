@@ -2,7 +2,12 @@ package com.hal.manualmocap;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
@@ -15,6 +20,19 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.GoogleMapOptions;
+import com.google.android.gms.maps.MapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.GroundOverlay;
+import com.google.android.gms.maps.model.GroundOverlayOptions;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.net.DatagramSocket;
 
@@ -30,11 +48,14 @@ public class Main extends ActionBarActivity {
     boolean UdpSettingsChanged;
     String AppPassword;
 
+    private GoogleMap mMap;
+
     public Telemetry AC_DATA;
+    public int AcId = 31;
     SharedPreferences AppSettings;
 
     private ReadTelemetry TelemetryAsyncTask;
-    boolean isTaskRunning;
+    boolean isTaskRunning = false;
     private Thread mTCPthread;
 
     static DatagramSocket sSocket = null;
@@ -66,6 +87,44 @@ public class Main extends ActionBarActivity {
     private void set_up_app() {
         AppSettings = PreferenceManager.getDefaultSharedPreferences(this);
         AppPassword = "1234";
+
+        //initialize map
+        mMap = ((MapFragment) getFragmentManager()
+                .findFragmentById(R.id.map)).getMap();
+
+        //initialize map options
+        GoogleMapOptions mMapOptions = new GoogleMapOptions();
+
+        mMap.setMapType(GoogleMap.MAP_TYPE_NONE);
+        LatLng labOrigin = new LatLng(36.005417, -78.940984);
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(labOrigin, 50));
+        CameraPosition rotated = new CameraPosition.Builder()
+                .target(labOrigin)
+                .zoom(50)
+                .bearing(90.0f)
+                .build();
+        mMap.moveCamera(CameraUpdateFactory.newCameraPosition(rotated));
+
+        BitmapDescriptor labImage = BitmapDescriptorFactory.fromResource(R.drawable.fullroomoriginmanual);
+        GroundOverlay trueMap = mMap.addGroundOverlay(new GroundOverlayOptions()
+                .image(labImage)
+                .position(labOrigin, (float) 35)
+                .bearing(90.0f));
+
+
+
+        //Disable zoom and gestures to lock the image in place
+        mMap.getUiSettings().setAllGesturesEnabled(false);
+        mMap.getUiSettings().setZoomGesturesEnabled(false);
+        mMap.getUiSettings().setTiltGesturesEnabled(false);
+        mMap.getUiSettings().setCompassEnabled(false);
+
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                Log.d("coord", latLng.toString());
+            }
+        });
 
         //setup joysticks
         xView1 = (TextView)findViewById(R.id.x_position);
@@ -112,8 +171,8 @@ public class Main extends ActionBarActivity {
                 //checks to see if the joystick is in the yaw region
                 else if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) >= 72) {
-                    if(js1.getX()>0) AC_DATA.yaw = 20;      //right button for yaw
-                    if(js1.getX()<0) AC_DATA.yaw = -20;     //left button for yaw
+                    if(js1.getX()>0) AC_DATA.yaw = 15;      //right button for yaw
+                    if(js1.getX()<0) AC_DATA.yaw = -15;     //left button for yaw
                     xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
                     yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
@@ -167,16 +226,136 @@ public class Main extends ActionBarActivity {
         });
     }
 
-    /*private void send_to_server(String StrToSend, boolean ControlString) {
-        //Is it a control string ? else ->Data request
-        if (ControlString) {
-            AC_DATA.SendToTcp = AppPassword + " " + StrToSend;
-        } else {
-            AC_DATA.SendToTcp = StrToSend;
+    public void refresh_map_data(){
+        if (null == AC_DATA.AircraftData.AC_Marker) {
+            add_AC_to_map();
         }
-    }*/
 
-        @Override
+        if (AC_DATA.AircraftData.AC_Enabled && AC_DATA.AircraftData.AC_Position_Changed) {
+            AC_DATA.AircraftData.AC_Marker.setPosition(convert_to_lab(AC_DATA.AircraftData.Position));
+            AC_DATA.AircraftData.AC_Marker.setRotation(Float.parseFloat(AC_DATA.AircraftData.Heading));
+            AC_DATA.AircraftData.AC_Position_Changed = false;
+        }
+
+
+    }
+
+    public void add_AC_to_map(){
+        if (AC_DATA.AircraftData.AC_Enabled) {
+            AC_DATA.AircraftData.AC_Logo = create_ac_icon(Color.RED, AC_DATA.GraphicsScaleFactor);
+
+            AC_DATA.AircraftData.AC_Marker = mMap.addMarker(new MarkerOptions()
+                    .position(convert_to_lab(AC_DATA.AircraftData.Position))
+                    .anchor((float) 0.5, (float) 0.5)
+                    .flat(true)
+                    .rotation(Float.parseFloat(AC_DATA.AircraftData.Heading))
+                    .draggable(false)
+                    .icon(BitmapDescriptorFactory.fromBitmap(AC_DATA.AircraftData.AC_Logo))
+            );
+        }
+        else{
+            AC_DATA.get_new_aircraft_data(AcId);
+        }
+    }
+
+    public Bitmap create_ac_icon(int ColorType, float GraphicsScaleFactor) {
+
+        int AcColor = ColorType;
+
+        int w = (int) (34 * GraphicsScaleFactor);
+        int h = (int) (34 * GraphicsScaleFactor);
+        Bitmap.Config conf = Bitmap.Config.ARGB_4444; // see other conf types
+        Bitmap bmp = Bitmap.createBitmap(w, h, conf); // this creates a MUTABLE bitmapAircraftData[IndexOfAc].AC_Color
+        Canvas canvas = new Canvas(bmp);
+
+        canvas = create_selected_canvas(canvas, AcColor, GraphicsScaleFactor);
+
+
+        //Create rotorcraft logo
+        Paint p = new Paint();
+
+        p.setColor(AcColor);
+
+
+        p.setStyle(Paint.Style.STROKE);
+        //p.setStrokeWidth(2f);
+        p.setAntiAlias(true);
+
+        Path ACpath = new Path();
+        ACpath.moveTo((3 * w / 16), (h / 2));
+        ACpath.addCircle(((3 * w / 16) + 1), (h / 2), ((3 * w / 16) - 2), Path.Direction.CW);
+        ACpath.moveTo((3 * w / 16), (h / 2));
+        ACpath.lineTo((13 * w / 16), (h / 2));
+        ACpath.addCircle((13 * w / 16), (h / 2), ((3 * w / 16) - 2), Path.Direction.CW);
+        ACpath.addCircle((w / 2), (13 * h / 16), ((3 * w / 16) - 2), Path.Direction.CW);
+        ACpath.moveTo((w / 2), (13 * h / 16));
+        ACpath.lineTo((w / 2), (5 * h / 16));
+        ACpath.lineTo((6 * w / 16), (5 * h / 16));
+        ACpath.lineTo((w / 2), (2 * h / 16));
+        ACpath.lineTo((10 * w / 16), (5 * h / 16));
+        ACpath.lineTo((w / 2), (5 * h / 16));
+
+        canvas.drawPath(ACpath, p);
+
+        Paint black = new Paint();
+        black.setColor(Color.BLACK);
+        black.setStyle(Paint.Style.STROKE);
+        black.setStrokeWidth(6f);
+        black.setAntiAlias(true);
+
+        canvas.drawPath(ACpath, black);
+        p.setStrokeWidth(3.5f);
+        canvas.drawPath(ACpath, p);
+        return bmp;
+    }
+
+    private Canvas create_selected_canvas(Canvas CanvIn, int AcColor, float GraphicsScaleFactor) {
+
+        int w = CanvIn.getWidth();
+        int h = CanvIn.getHeight();
+
+        float SelLineLeng = 4 * GraphicsScaleFactor;
+
+        Path SelPath = new Path();
+        SelPath.moveTo(0, 0); //1
+        SelPath.lineTo(SelLineLeng, 0);
+        SelPath.moveTo(0, 0);
+        SelPath.lineTo(0, SelLineLeng);
+        SelPath.moveTo(w, 0); //2
+        SelPath.lineTo(w - SelLineLeng, 0);
+        SelPath.moveTo(w, 0);
+        SelPath.lineTo(w, SelLineLeng);
+        SelPath.moveTo(w, h);   //3
+        SelPath.lineTo(w, h - SelLineLeng);
+        SelPath.moveTo(w, h);
+        SelPath.lineTo(w - SelLineLeng, h);
+        SelPath.moveTo(0, h);
+        SelPath.lineTo(0, h - SelLineLeng);
+        SelPath.moveTo(0, h);
+        SelPath.lineTo(SelLineLeng, h);
+
+        Paint p = new Paint();
+        //p.setColor(AcColor);
+        p.setColor(Color.YELLOW);
+        p.setAntiAlias(true);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(3 * GraphicsScaleFactor);
+        CanvIn.drawPath(SelPath, p);
+        return CanvIn;
+    }
+
+    public LatLng convert_to_lab(LatLng position){
+        double oldLat = position.latitude;
+        double oldLong = position.longitude;
+
+        double newLat = 1.75*oldLat - 27.00401175;
+        double newLong = 1.777778*oldLong + 61.39861865;
+
+        LatLng newPosition = new LatLng(newLat, newLong);
+        return newPosition;
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_joysticks_land);
@@ -270,6 +449,7 @@ public class Main extends ActionBarActivity {
                     publishProgress("ee");
                     AC_DATA.ViewChanged = false;
                 }
+
             }
             if (DEBUG) Log.d("PPRZ_info", "Stopping AsyncTask ..");
             return null;
@@ -285,6 +465,10 @@ public class Main extends ActionBarActivity {
                     battery_level.setTextColor(Color.RED);
                 }
             }
+
+            refresh_map_data();
+
+
         }
     }
 
@@ -303,6 +487,7 @@ public class Main extends ActionBarActivity {
                     //this method calls the onProgressUpdate
                     //publishProgress(message);
                     //Log.d("TCPParse", "Begin TCP parse");
+                    //update AC position
                     AC_DATA.parse_tcp_string(message);
 
                 }

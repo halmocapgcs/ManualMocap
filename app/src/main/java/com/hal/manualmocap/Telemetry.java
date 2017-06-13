@@ -5,6 +5,9 @@ import android.graphics.Bitmap;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
@@ -24,6 +27,8 @@ public class Telemetry {
     //Visual change flags
     public boolean ViewChanged = false;  //Every function -willing to change UI needs to raise this flag
     public boolean BatteryChanged = false;
+
+    public float GraphicsScaleFactor = 1;
 
     public Context context;
     public AirCraft AircraftData;
@@ -104,15 +109,31 @@ public class Telemetry {
                 ViewChanged = true;
             }
         }
+
+        if (LastTelemetryString.matches("(^ground FLIGHT_PARAM .*)")) {
+            String[] ParsedData = LastTelemetryString.split(" ");
+
+            AircraftData.Heading = ParsedData[5];
+            AircraftData.Position = new LatLng(Double.parseDouble(ParsedData[6]), Double.parseDouble(ParsedData[7]));
+
+            if(AircraftData.AC_Enabled){
+                AircraftData.AC_Position_Changed = true;
+                ViewChanged = true;
+            }
+        }
     }
 
     public void parse_tcp_string(String LastTelemetryString) {
         if (LastTelemetryString.matches("(^AppServer ACd .*)")) {
-            //fill in here with respose to confirmation message from server
+            String[] ParsedData = LastTelemetryString.split(" ");
+
+            if(Integer.parseInt((ParsedData[2])) == AcId) {
+                AircraftData.AC_Enabled = true;
+            }
         }
     }
 
-    private void get_new_aircraft_data(int AcId) {
+    public void get_new_aircraft_data(int AcId) {
         //sends message to tcp
         SendToTcp = ("getac " + AcId);
     }
@@ -123,7 +144,14 @@ public class Telemetry {
     }
 
     public class AirCraft{
+        boolean AC_Enabled = false;
+        boolean AC_Position_Changed = false;
+
         String Battery;
+        Marker AC_Marker;
+        Bitmap AC_Logo;
+        LatLng Position;
+        String Heading = "0";
     }
 }
 

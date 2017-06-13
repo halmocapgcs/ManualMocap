@@ -15,12 +15,13 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:layout_alignParentTop="true"
-        android:layout_alignParentStart="true">
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true">
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="75dp">
+            android:layout_marginTop="20dp">
 
             <RelativeLayout
                 android:id="@+id/layout_joystick_left"
@@ -28,14 +29,16 @@
                 android:layout_height="300dp"
                 android:orientation="horizontal"
                 android:background="@drawable/image_button_bg_throttle"
-                android:layout_alignParentLeft="true">
+                android:layout_alignParentLeft="true"
+                android:layout_centerVertical="true">
             </RelativeLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_centerHorizontal="true"
-                android:id="@+id/battery_level"/>
+            <fragment xmlns:android="http://schemas.android.com/apk/res/android"
+                      android:id="@+id/map"
+                      android:layout_width="580dp"
+                      android:layout_height="416.25dp"
+                      android:layout_centerHorizontal="true"
+                      android:name="com.google.android.gms.maps.MapFragment"/>
 
             <RelativeLayout
                 android:id="@+id/layout_joystick_right"
@@ -43,7 +46,8 @@
                 android:layout_height="300dp"
                 android:orientation="horizontal"
                 android:background="@drawable/image_button_bg_normal"
-                android:layout_alignParentRight="true">
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true">
             </RelativeLayout>
 
 
@@ -53,7 +57,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="75dp">
+            android:layout_marginTop="10dp">
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -66,12 +70,20 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="X:"/>
+
                 <TextView
                     android:id="@+id/y_position"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Y:"/>
             </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:id="@+id/battery_level"/>
+
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
