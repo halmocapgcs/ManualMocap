@@ -1,5 +1,6 @@
 package com.hal.manualmocap;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -15,11 +16,45 @@ import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+//package com.hal.manualmocap;
+import android.app.Activity;
+import android.content.Context;
+import android.graphics.Color;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
+import android.view.Display;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.widget.FrameLayout;
+import android.view.View;
+import android.widget.Button;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+import android.widget.ViewFlipper;
+
+import org.videolan.libvlc.IVideoPlayer;
+import org.videolan.libvlc.LibVLC;
+import org.videolan.libvlc.LibVlcException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -34,21 +69,50 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.videolan.libvlc.IVideoPlayer;
+import org.videolan.libvlc.LibVLC;
+import org.videolan.libvlc.LibVlcException;
+
 import java.net.DatagramSocket;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-public class Main extends ActionBarActivity {
+import static android.R.attr.delay;
 
+public class Main extends Activity implements IVideoPlayer {
+
+    private static final String TAG = Main.class.getSimpleName();
     //telemetry variables
     public static final String SERVER_IP_ADDRESS = "server_ip_adress_text";
     public static final String SERVER_PORT_ADDRESS = "server_port_number_text";
     public static final String LOCAL_PORT_ADDRESS = "local_port_number_text";
 
-    boolean DEBUG=false;
+    private int mVideoHeight;
+    private int mVideoWidth;
+    private int mVideoVisibleHeight;
+    private int mVideoVisibleWidth;
+    private int mSarNum;
+    private int mSarDen;
+
+    private int click_count = 0;
+    private SurfaceView mSurfaceView1, mSurfaceView2 ;
+    private FrameLayout mSurfaceFrame1, mSurfaceFrame2;
+    private SurfaceHolder mSurfaceHolder1, mSurfaceHolder2;
+    private Surface mSurface1 = null, mSurface2 = null;
+
+    private LibVLC mLibVLC1, mLibVLC2;
+
+    private String mMediaUrl1, mMediaUrl2;
+    private String[] temp_options;
+    private String[] new_options;
+
+    boolean DEBUG=true;
     boolean TcpSettingsChanged;
     boolean UdpSettingsChanged;
     String AppPassword;
 
-    private GoogleMap mMap;
+    private GoogleMap mMap1, mMap2;
 
     public Telemetry AC_DATA;
     public int AcId = 31;
@@ -62,10 +126,11 @@ public class Main extends ActionBarActivity {
 
     //joystick variables
     RelativeLayout layout_joystick_left, layout_joystick_right;
-    Button power_button, Button_LaunchInspectionMode;
-
+    Button power_button,toggle,toggle_to_video;
+    ViewFlipper vf_big,vf_small;
     JStick js1, js2;
-    TextView xView1, xView2, yView1, yView2, battery_level;
+    //TextView xView1, xView2, yView1, yView2;
+    TextView battery_level;
 
     private void setup_telemetry_class() {
 
@@ -89,37 +154,58 @@ public class Main extends ActionBarActivity {
         AppPassword = "1234";
 
         //initialize map
-        mMap = ((MapFragment) getFragmentManager()
+        mMap1 = ((MapFragment) getFragmentManager()
                 .findFragmentById(R.id.map)).getMap();
+        mMap2 = ((MapFragment) getFragmentManager()
+                .findFragmentById(R.id.map_small)).getMap();
 
         //initialize map options
         GoogleMapOptions mMapOptions = new GoogleMapOptions();
 
-        mMap.setMapType(GoogleMap.MAP_TYPE_NONE);
+        mMap1.setMapType(GoogleMap.MAP_TYPE_NONE);
+        mMap2.setMapType(GoogleMap.MAP_TYPE_NONE);
         LatLng labOrigin = new LatLng(36.005417, -78.940984);
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(labOrigin, 50));
+        mMap1.moveCamera(CameraUpdateFactory.newLatLngZoom(labOrigin, 50));
+        mMap2.moveCamera(CameraUpdateFactory.newLatLngZoom(labOrigin, 50));
         CameraPosition rotated = new CameraPosition.Builder()
                 .target(labOrigin)
                 .zoom(50)
                 .bearing(90.0f)
                 .build();
-        mMap.moveCamera(CameraUpdateFactory.newCameraPosition(rotated));
+        mMap1.moveCamera(CameraUpdateFactory.newCameraPosition(rotated));
+        mMap2.moveCamera(CameraUpdateFactory.newCameraPosition(rotated));
 
-        BitmapDescriptor labImage = BitmapDescriptorFactory.fromResource(R.drawable.fullroomoriginmanual);
-        GroundOverlay trueMap = mMap.addGroundOverlay(new GroundOverlayOptions()
+        BitmapDescriptor labImage = BitmapDescriptorFactory.fromResource(R.drawable.fullroommanual);
+        GroundOverlay trueMap1 = mMap1.addGroundOverlay(new GroundOverlayOptions()
                 .image(labImage)
                 .position(labOrigin, (float) 35)
+                .bearing(90.0f));
+        GroundOverlay trueMap2 = mMap2.addGroundOverlay(new GroundOverlayOptions()
+                .image(labImage)
+                .position(labOrigin, (float) 15)
                 .bearing(90.0f));
 
 
 
-        //Disable zoom and gestures to lock the image in place
-        mMap.getUiSettings().setAllGesturesEnabled(false);
-        mMap.getUiSettings().setZoomGesturesEnabled(false);
-        mMap.getUiSettings().setTiltGesturesEnabled(false);
-        mMap.getUiSettings().setCompassEnabled(false);
 
-        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+        //Disable zoom and gestures to lock the image in place
+        mMap1.getUiSettings().setAllGesturesEnabled(false);
+        mMap1.getUiSettings().setZoomGesturesEnabled(false);
+        mMap1.getUiSettings().setTiltGesturesEnabled(false);
+        mMap1.getUiSettings().setCompassEnabled(false);
+        mMap2.getUiSettings().setAllGesturesEnabled(false);
+        mMap2.getUiSettings().setZoomGesturesEnabled(false);
+        mMap2.getUiSettings().setTiltGesturesEnabled(false);
+        mMap2.getUiSettings().setCompassEnabled(false);
+
+        mMap1.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                Log.d("coord", latLng.toString());
+            }
+        });
+
+        mMap2.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
                 Log.d("coord", latLng.toString());
@@ -127,11 +213,11 @@ public class Main extends ActionBarActivity {
         });
 
         //setup joysticks
-        xView1 = (TextView)findViewById(R.id.x_position);
+       /* xView1 = (TextView)findViewById(R.id.x_position);
         yView1 = (TextView)findViewById(R.id.y_position);
         xView2 = (TextView)findViewById(R.id.x_position_right);
         yView2 = (TextView)findViewById(R.id.y_position_right);
-
+        */
         //setup battery
         battery_level = (TextView)findViewById(R.id.battery_level);
         battery_level.setText("??? v");
@@ -139,11 +225,15 @@ public class Main extends ActionBarActivity {
         layout_joystick_left = (RelativeLayout)findViewById(R.id.layout_joystick_left);
         layout_joystick_right = (RelativeLayout)findViewById(R.id.layout_joystick_right);
         power_button = (Button)findViewById(R.id.power_button);
+        toggle = (Button)findViewById(R.id.toggle);
+        //toggle_to_video = (Button)findViewById(R.id.toggle_to_video);
 
         js1 = new JStick(getApplicationContext(), layout_joystick_left, R.drawable.image_button, "YAW");
         js2 = new JStick(getApplicationContext(), layout_joystick_right, R.drawable.image_button, "PITCH");
 
-        Button_LaunchInspectionMode = (Button) findViewById(R.id.InspectionMode);
+        vf_big = (ViewFlipper)findViewById(R.id.vf_1);
+        vf_small = (ViewFlipper)findViewById(R.id.vf_2);
+        /*Button_LaunchInspectionMode = (Button) findViewById(R.id.InspectionMode);
         Button_LaunchInspectionMode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -152,7 +242,7 @@ public class Main extends ActionBarActivity {
                 inspect.putExtra("videoUrl", url);
                 startActivity(inspect);
             }
-        });
+        });*/
 
         //joystick for throttle and yaw
         layout_joystick_left.setOnTouchListener(new View.OnTouchListener() {
@@ -165,23 +255,23 @@ public class Main extends ActionBarActivity {
                     if(js1.getY()>30) AC_DATA.throttle = 84;
                     else if(js1.getY()<-30) AC_DATA.throttle = 42;
                     else AC_DATA.throttle = 63;
-                    xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
-                    yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
+                    //xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
+                    //yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
                 //checks to see if the joystick is in the yaw region
                 else if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) >= 72) {
                     if(js1.getX()>0) AC_DATA.yaw = 15;      //right button for yaw
                     if(js1.getX()<0) AC_DATA.yaw = -15;     //left button for yaw
-                    xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
-                    yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
+                    //xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
+                    //yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
                 //reset value of yaw but not throttle when lifting up
                 else if(arg1.getAction() == MotionEvent.ACTION_UP) {
                     AC_DATA.yaw = 0;
 					AC_DATA.throttle = 63;
-                    xView1.setText("X : 0");
-                    yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
+                    //xView1.setText("X : 0");
+                    //yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
                 return true;
             }
@@ -195,15 +285,15 @@ public class Main extends ActionBarActivity {
                         || arg1.getAction() == MotionEvent.ACTION_MOVE)) {
                     AC_DATA.roll = (int) (js2.getX()/4.0f);
                     AC_DATA.pitch = (int) -(js2.getY()/4.0f);
-                    xView2.setText("X : " + String.valueOf(AC_DATA.roll));
-                    yView2.setText("Y : " + String.valueOf(AC_DATA.pitch));
+                    //xView2.setText("X : " + String.valueOf(AC_DATA.roll));
+                    //yView2.setText("Y : " + String.valueOf(AC_DATA.pitch));
                 }
                 //reset both values to zero when lifting up or in central zone
                 else if(arg1.getAction() == MotionEvent.ACTION_UP) {
                     AC_DATA.roll = 0;
                     AC_DATA.pitch = 0;
-                    xView2.setText("X : 0");
-                    yView2.setText("Y : 0");
+                    //xView2.setText("X : 0");
+                    //yView2.setText("Y : 0");
                 }
                 return true;
             }
@@ -224,6 +314,70 @@ public class Main extends ActionBarActivity {
                 return true;
             }
         });
+
+        toggle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                click_count++;
+                if(click_count%2==1){
+                    mLibVLC2.stop();
+                    try{
+                        mLibVLC1 = new LibVLC();
+                        mLibVLC1.setAout(mLibVLC1.AOUT_AUDIOTRACK);
+                        mLibVLC1.setVout(mLibVLC1.VOUT_ANDROID_SURFACE);
+                        mLibVLC1.setHardwareAcceleration(LibVLC.HW_ACCELERATION_FULL);
+                        mLibVLC1.init(getApplicationContext());
+
+                    }
+                    catch (LibVlcException e) {
+                        Log.e(TAG, e.toString());
+                    }
+                    mSurface1 = mSurfaceHolder1.getSurface();
+                    mLibVLC1.attachSurface(mSurface1, Main.this);
+                    temp_options = mLibVLC1.getMediaOptions(0);
+                    List<String> options_list = new ArrayList<String>(Arrays.asList(temp_options));
+
+
+                    options_list.set(0,":file-caching=2000");
+                    options_list.set(1,":network-caching=150");
+                    new_options = options_list.toArray(new String[options_list.size()]);
+                    mLibVLC1.playMRL(mMediaUrl1,new_options);
+
+                }
+                else {
+                    mLibVLC1.stop();
+                    try {
+
+                        mLibVLC2 = new LibVLC();
+                        mLibVLC2.setAout(mLibVLC2.AOUT_AUDIOTRACK);
+                        mLibVLC2.setVout(mLibVLC2.VOUT_ANDROID_SURFACE);
+                        mLibVLC2.setHardwareAcceleration(LibVLC.HW_ACCELERATION_FULL);
+                        mLibVLC2.init(getApplicationContext());
+
+                    } catch (LibVlcException e){
+                        Log.e(TAG, e.toString());
+                    }
+                    mSurface2 = mSurfaceHolder2.getSurface();
+                    mLibVLC2.attachSurface(mSurface2, Main.this);
+                    temp_options = mLibVLC2.getMediaOptions(0);
+                    List<String> options_list = new ArrayList<String>(Arrays.asList(temp_options));
+
+
+                    options_list.set(0,":file-caching=2000");
+                    options_list.set(1,":network-caching=150");
+                    new_options = options_list.toArray(new String[options_list.size()]);
+                    mLibVLC2.playMRL(mMediaUrl2,new_options);
+
+                }
+
+                vf_big.showNext();
+                vf_small.showNext();
+
+
+            }
+        });
+
+
     }
 
     public void refresh_map_data(){
@@ -244,7 +398,15 @@ public class Main extends ActionBarActivity {
         if (AC_DATA.AircraftData.AC_Enabled) {
             AC_DATA.AircraftData.AC_Logo = create_ac_icon(Color.RED, AC_DATA.GraphicsScaleFactor);
 
-            AC_DATA.AircraftData.AC_Marker = mMap.addMarker(new MarkerOptions()
+            AC_DATA.AircraftData.AC_Marker = mMap1.addMarker(new MarkerOptions()
+                    .position(convert_to_lab(AC_DATA.AircraftData.Position))
+                    .anchor((float) 0.5, (float) 0.5)
+                    .flat(true)
+                    .rotation(Float.parseFloat(AC_DATA.AircraftData.Heading))
+                    .draggable(false)
+                    .icon(BitmapDescriptorFactory.fromBitmap(AC_DATA.AircraftData.AC_Logo))
+            );
+            AC_DATA.AircraftData.AC_Marker = mMap2.addMarker(new MarkerOptions()
                     .position(convert_to_lab(AC_DATA.AircraftData.Position))
                     .anchor((float) 0.5, (float) 0.5)
                     .flat(true)
@@ -359,6 +521,43 @@ public class Main extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_joysticks_land);
+        mMediaUrl1 = "file:///sdcard/DCIM/video1.sdp";
+        mMediaUrl2 = "file:///sdcard/DCIM/video2.sdp";
+
+        mSurfaceView1 = (SurfaceView) findViewById(R.id.player_surface);
+        mSurfaceView2 = (SurfaceView) findViewById(R.id.player_surface_small);
+        mSurfaceHolder1 = mSurfaceView1.getHolder();
+        mSurfaceHolder2 = mSurfaceView2.getHolder();
+
+        mSurfaceFrame1 = (FrameLayout) findViewById(R.id.player_surface_frame);
+        mSurfaceFrame2 = (FrameLayout) findViewById(R.id.player_surface_frame_small);
+        //mMediaUrl = getIntent().getExtras().getString("videoUrl");
+        try {
+
+            mLibVLC2 = new LibVLC();
+            mLibVLC2.setAout(mLibVLC2.AOUT_AUDIOTRACK);
+            mLibVLC2.setVout(mLibVLC2.VOUT_ANDROID_SURFACE);
+            mLibVLC2.setHardwareAcceleration(LibVLC.HW_ACCELERATION_FULL);
+            mLibVLC2.init(getApplicationContext());
+
+        } catch (LibVlcException e){
+            Log.e(TAG, e.toString());
+        }
+
+        mSurface2 = mSurfaceHolder2.getSurface();
+        //mSurface2 = mSurfaceHolder2.getSurface();
+        mLibVLC2.attachSurface(mSurface2, Main.this);
+        //mLibVLC2.attachSurface(mSurface2,Main.this);
+
+        temp_options = mLibVLC2.getMediaOptions(0);
+        List<String> options_list = new ArrayList<String>(Arrays.asList(temp_options));
+
+
+        options_list.set(0,":file-caching=2000");
+        options_list.set(1,":network-caching=150");
+        new_options = options_list.toArray(new String[options_list.size()]);
+        mLibVLC2.playMRL(mMediaUrl2,new_options);
+        //mLibVLC2.playMRL(mMediaUrl2,new_options);
 
         //setup telemetry data
         set_up_app();
@@ -366,6 +565,36 @@ public class Main extends ActionBarActivity {
 
         TelemetryAsyncTask = new ReadTelemetry();
         TelemetryAsyncTask.execute();
+    }
+
+    protected void onDestroy() {
+        super.onDestroy();
+
+         //MediaCodec opaque direct rendering should not be used anymore since there is no surface to attach.
+    }
+
+    @Override
+    public void eventHardwareAccelerationError(){}
+
+    @Override
+    public void setSurfaceLayout(final int width, final int height, int visible_width, int visible_height, final int sar_num, int sar_den){
+        Log.d(TAG, "setSurfaceSize -- START");
+        if (width * height == 0)
+            return;
+
+        // store video size
+        mVideoHeight = height;
+        mVideoWidth = width;
+        mVideoVisibleHeight = visible_height;
+        mVideoVisibleWidth = visible_width;
+        mSarNum = sar_num;
+        mSarDen = sar_den;
+
+        Log.d(TAG, "setSurfaceSize -- mMediaUrl: " + mMediaUrl1 + " mVideoHeight: " + mVideoHeight + " mVideoWidth: " + mVideoWidth + " mVideoVisibleHeight: " + mVideoVisibleHeight + " mVideoVisibleWidth: " + mVideoVisibleWidth + " mSarNum: " + mSarNum + " mSarDen: " + mSarDen);
+    }
+    @Override
+    public int configureSurface(android.view.Surface surface, int i, int i1, int i2){
+        return -1;
     }
 
     @Override
