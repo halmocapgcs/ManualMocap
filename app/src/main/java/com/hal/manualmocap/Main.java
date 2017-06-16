@@ -9,6 +9,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
@@ -47,6 +48,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ViewFlipper;
 
 import org.videolan.libvlc.IVideoPlayer;
@@ -95,6 +97,8 @@ public class Main extends Activity implements IVideoPlayer {
     private int mSarNum;
     private int mSarDen;
 
+	public int percent = 100;
+
     private int click_count = 0;
     private SurfaceView mSurfaceView1, mSurfaceView2 ;
     private FrameLayout mSurfaceFrame1, mSurfaceFrame2;
@@ -131,6 +135,7 @@ public class Main extends Activity implements IVideoPlayer {
     JStick js1, js2;
     //TextView xView1, xView2, yView1, yView2;
     TextView battery_level, flight_time, altitude;
+	ImageView mImageView;
 
     private void setup_telemetry_class() {
 
@@ -224,6 +229,7 @@ public class Main extends Activity implements IVideoPlayer {
         yView2 = (TextView)findViewById(R.id.y_position_right);
         */
         //setup health and status
+		mImageView = (ImageView)findViewById(R.id.iv_battery);
         battery_level = (TextView)findViewById(R.id.Bat_Vol_On_Map);
 		flight_time = (TextView)findViewById(R.id.Flight_Time_On_Map);
 		altitude = (TextView)findViewById(R.id.Alt_On_Map);
@@ -715,14 +721,60 @@ public class Main extends Activity implements IVideoPlayer {
         protected void onProgressUpdate(String... value) {
             super.onProgressUpdate(value);
 
-            if (AC_DATA.BatteryChanged) {
-                battery_level.setText(AC_DATA.AircraftData.Battery + " v");
-                if(Double.parseDouble(AC_DATA.AircraftData.Battery) < 10.2){
-                    battery_level.setTextColor(Color.RED);
-                }
-            }
+			Bitmap bitmap = Bitmap.createBitmap(
+					55, // Width
+					110, // Height
+					Bitmap.Config.ARGB_8888 // Config
+			);
+			Canvas canvas = new Canvas(bitmap);
+			//canvas.drawColor(Color.BLACK);
+			Paint paint = new Paint();
+			paint.setStyle(Paint.Style.FILL);
+			paint.setAntiAlias(true);
+			double battery_double = Double.parseDouble(AC_DATA.AircraftData.Battery);
+			double battery_width = (12.5 - battery_double) / (.027);
+			int val = (int) battery_width;
 
-            refresh_map_data();
+			if (AC_DATA.BatteryChanged) {
+
+				int newPercent = (int) (((battery_double - 9.8)/(11.0-9.8)) * 100);
+				if(newPercent > 100) newPercent = 100;
+				if(newPercent < percent) {
+					battery_level.setText("" + newPercent + " %");
+					percent = newPercent;
+				}
+
+
+				if ( battery_double > 10.4) {
+					paint.setColor(Color.parseColor("#18A347"));
+				}
+				if (10.4 >= battery_double && battery_double >= 10.1) {
+					paint.setARGB(219, 180, 36, 1);
+
+				}
+				if (10.1 > battery_double && battery_double > 9.8) {
+					paint.setColor(Color.parseColor("#B0090E"));
+					Toast.makeText(getApplicationContext(), "Warning: Low Battery", Toast.LENGTH_SHORT);
+				}
+				if (battery_double <= 9.8) {
+					Toast.makeText(getApplicationContext(), "No battery remaining. Land immediately", Toast.LENGTH_SHORT);
+				}
+				int padding = 10;
+				Rect rectangle = new Rect(
+						padding, // Left
+						100 - (int) (90*((double) percent *.01)), // Top
+						canvas.getWidth() - padding , // Right
+						canvas.getHeight() - padding // Bottom
+				);
+
+				canvas.drawRect(rectangle, paint);
+				mImageView.setImageBitmap(bitmap);
+				mImageView.setBackgroundResource(R.drawable.battery_image_empty);
+
+			}
+
+
+			refresh_map_data();
 
 			if (AC_DATA.AircraftData.Altitude_Changed) {
 				altitude.setText(AC_DATA.AircraftData.Altitude);
