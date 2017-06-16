@@ -12,6 +12,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -115,12 +116,35 @@ public class Telemetry {
 
             AircraftData.Heading = ParsedData[5];
             AircraftData.Position = new LatLng(Double.parseDouble(ParsedData[6]), Double.parseDouble(ParsedData[7]));
+			AircraftData.Altitude = ParsedData[10].substring(0, ParsedData[10].indexOf(".") + 1);
 
-            if(AircraftData.AC_Enabled){
+			if(Integer.parseInt(AircraftData.Altitude) <= 0) AircraftData.Altitude = "0.0";
+			AircraftData.Altitude = AircraftData.Altitude + " m";
+
+			if(AircraftData.AC_Enabled){
                 AircraftData.AC_Position_Changed = true;
+				AircraftData.Altitude_Changed = true;
                 ViewChanged = true;
             }
         }
+
+		if (LastTelemetryString.matches("(^ground AP_STATUS .*)")) {
+
+			String[] ParsedData = LastTelemetryString.split(" ");
+			Long FlightTime = Long.parseLong(ParsedData[9]);
+			Long Hours, Minutes;
+
+			Hours = TimeUnit.SECONDS.toHours(FlightTime);
+			FlightTime = FlightTime - TimeUnit.HOURS.toSeconds(Hours);
+			Minutes = TimeUnit.SECONDS.toMinutes(FlightTime);
+			FlightTime = FlightTime - TimeUnit.MINUTES.toSeconds(Minutes);
+
+			AircraftData.FlightTime = Long.toString(Hours) + ":" + Long.toString(Minutes) + ":" + Long.toString(FlightTime);
+
+			AircraftData.ApStatusChanged = true;
+			ViewChanged = true;
+
+		}
     }
 
     public void parse_tcp_string(String LastTelemetryString) {
@@ -146,12 +170,16 @@ public class Telemetry {
     public class AirCraft{
         boolean AC_Enabled = false;
         boolean AC_Position_Changed = false;
+		boolean Altitude_Changed = false;
+		boolean ApStatusChanged = false;
 
         String Battery;
-        Marker AC_Marker;
+        Marker AC_Marker1, AC_Marker2;
         Bitmap AC_Logo;
         LatLng Position;
+		String Altitude;
         String Heading = "0";
+		String FlightTime;
     }
 }
 

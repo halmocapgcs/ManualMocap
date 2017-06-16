@@ -130,7 +130,7 @@ public class Main extends Activity implements IVideoPlayer {
     ViewFlipper vf_big,vf_small;
     JStick js1, js2;
     //TextView xView1, xView2, yView1, yView2;
-    TextView battery_level;
+    TextView battery_level, flight_time, altitude;
 
     private void setup_telemetry_class() {
 
@@ -162,18 +162,23 @@ public class Main extends Activity implements IVideoPlayer {
         //initialize map options
         GoogleMapOptions mMapOptions = new GoogleMapOptions();
 
-        mMap1.setMapType(GoogleMap.MAP_TYPE_NONE);
-        mMap2.setMapType(GoogleMap.MAP_TYPE_NONE);
+        mMap1.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+        mMap2.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
         LatLng labOrigin = new LatLng(36.005417, -78.940984);
         mMap1.moveCamera(CameraUpdateFactory.newLatLngZoom(labOrigin, 50));
         mMap2.moveCamera(CameraUpdateFactory.newLatLngZoom(labOrigin, 50));
-        CameraPosition rotated = new CameraPosition.Builder()
+        CameraPosition rotated1 = new CameraPosition.Builder()
                 .target(labOrigin)
                 .zoom(50)
                 .bearing(90.0f)
                 .build();
-        mMap1.moveCamera(CameraUpdateFactory.newCameraPosition(rotated));
-        mMap2.moveCamera(CameraUpdateFactory.newCameraPosition(rotated));
+		CameraPosition rotated2 = new CameraPosition.Builder()
+				.target(labOrigin)
+				.zoom(20)
+				.bearing(90.0f)
+				.build();
+        mMap1.moveCamera(CameraUpdateFactory.newCameraPosition(rotated1));
+        mMap2.moveCamera(CameraUpdateFactory.newCameraPosition(rotated2));
 
         BitmapDescriptor labImage = BitmapDescriptorFactory.fromResource(R.drawable.fullroommanual);
         GroundOverlay trueMap1 = mMap1.addGroundOverlay(new GroundOverlayOptions()
@@ -182,7 +187,7 @@ public class Main extends Activity implements IVideoPlayer {
                 .bearing(90.0f));
         GroundOverlay trueMap2 = mMap2.addGroundOverlay(new GroundOverlayOptions()
                 .image(labImage)
-                .position(labOrigin, (float) 15)
+                .position(labOrigin, (float) 35)
                 .bearing(90.0f));
 
 
@@ -218,9 +223,10 @@ public class Main extends Activity implements IVideoPlayer {
         xView2 = (TextView)findViewById(R.id.x_position_right);
         yView2 = (TextView)findViewById(R.id.y_position_right);
         */
-        //setup battery
-        battery_level = (TextView)findViewById(R.id.battery_level);
-        battery_level.setText("??? v");
+        //setup health and status
+        battery_level = (TextView)findViewById(R.id.Bat_Vol_On_Map);
+		flight_time = (TextView)findViewById(R.id.Flight_Time_On_Map);
+		altitude = (TextView)findViewById(R.id.Alt_On_Map);
 
         layout_joystick_left = (RelativeLayout)findViewById(R.id.layout_joystick_left);
         layout_joystick_right = (RelativeLayout)findViewById(R.id.layout_joystick_right);
@@ -381,13 +387,20 @@ public class Main extends Activity implements IVideoPlayer {
     }
 
     public void refresh_map_data(){
-        if (null == AC_DATA.AircraftData.AC_Marker) {
+        if (AC_DATA.AircraftData.AC_Marker1 == null) {
             add_AC_to_map();
         }
 
+        if(AC_DATA.AircraftData.AC_Marker2 == null){
+			add_AC_to_map();
+		}
+
         if (AC_DATA.AircraftData.AC_Enabled && AC_DATA.AircraftData.AC_Position_Changed) {
-            AC_DATA.AircraftData.AC_Marker.setPosition(convert_to_lab(AC_DATA.AircraftData.Position));
-            AC_DATA.AircraftData.AC_Marker.setRotation(Float.parseFloat(AC_DATA.AircraftData.Heading));
+            AC_DATA.AircraftData.AC_Marker1.setPosition(convert_to_lab(AC_DATA.AircraftData.Position));
+            AC_DATA.AircraftData.AC_Marker1.setRotation(Float.parseFloat(AC_DATA.AircraftData.Heading));
+
+			AC_DATA.AircraftData.AC_Marker2.setPosition(convert_to_lab(AC_DATA.AircraftData.Position));
+			AC_DATA.AircraftData.AC_Marker2.setRotation(Float.parseFloat(AC_DATA.AircraftData.Heading));
             AC_DATA.AircraftData.AC_Position_Changed = false;
         }
 
@@ -398,7 +411,7 @@ public class Main extends Activity implements IVideoPlayer {
         if (AC_DATA.AircraftData.AC_Enabled) {
             AC_DATA.AircraftData.AC_Logo = create_ac_icon(Color.RED, AC_DATA.GraphicsScaleFactor);
 
-            AC_DATA.AircraftData.AC_Marker = mMap1.addMarker(new MarkerOptions()
+            AC_DATA.AircraftData.AC_Marker1 = mMap1.addMarker(new MarkerOptions()
                     .position(convert_to_lab(AC_DATA.AircraftData.Position))
                     .anchor((float) 0.5, (float) 0.5)
                     .flat(true)
@@ -406,7 +419,7 @@ public class Main extends Activity implements IVideoPlayer {
                     .draggable(false)
                     .icon(BitmapDescriptorFactory.fromBitmap(AC_DATA.AircraftData.AC_Logo))
             );
-            AC_DATA.AircraftData.AC_Marker = mMap2.addMarker(new MarkerOptions()
+            AC_DATA.AircraftData.AC_Marker2 = mMap2.addMarker(new MarkerOptions()
                     .position(convert_to_lab(AC_DATA.AircraftData.Position))
                     .anchor((float) 0.5, (float) 0.5)
                     .flat(true)
@@ -510,12 +523,26 @@ public class Main extends Activity implements IVideoPlayer {
         double oldLat = position.latitude;
         double oldLong = position.longitude;
 
-        double newLat = 1.75*oldLat - 27.00401175;
-        double newLong = 1.777778*oldLong + 61.39861865;
+        double newLat = (1.75*oldLat - 27.00401175);
+        double newLong = (1.777778*oldLong + 61.39861865);
 
         LatLng newPosition = new LatLng(newLat, newLong);
         return newPosition;
     }
+
+	public LatLng convert_to_lab_small(LatLng position){
+		double oldLat = position.latitude;
+		double oldLong = position.longitude;
+
+		double newLat = (1.75)/2.3*oldLat - 27.00401175;
+		double newLong = (1.777778)/2.3*oldLong + 61.39861865;
+
+		double newLatAdjusted = (newLat-oldLat)/2.3 +oldLat;
+		double newLongAdjusted = (newLong-oldLong)/2.3 +oldLong;
+
+		LatLng newPosition = new LatLng(newLatAdjusted, newLongAdjusted	);
+		return newPosition;
+	}
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -697,6 +724,17 @@ public class Main extends Activity implements IVideoPlayer {
 
             refresh_map_data();
 
+			if (AC_DATA.AircraftData.Altitude_Changed) {
+				altitude.setText(AC_DATA.AircraftData.Altitude);
+
+				AC_DATA.AircraftData.Altitude_Changed = false;
+			}
+
+			if(AC_DATA.AircraftData.ApStatusChanged){
+				flight_time.setText(AC_DATA.AircraftData.FlightTime + " s");
+
+				AC_DATA.AircraftData.ApStatusChanged = false;
+			}
 
         }
     }
