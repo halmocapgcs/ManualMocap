@@ -154,7 +154,7 @@
                 <TextView
                     android:layout_width="135dp"
                     android:layout_height="wrap_content"
-                    android:text="--- m"
+                    android:text="0.0 m"
                     android:id="@+id/Alt_On_Map"
                     android:layout_marginLeft="10dp"
                     android:gravity="right"
@@ -209,7 +209,8 @@
                 android:layout_alignParentRight="true"
                 android:layout_centerVertical="true"
                 android:layout_marginRight="100dp"
-                android:layout_marginEnd="100dp" />
+                android:layout_marginEnd="100dp"
+                android:background="@drawable/swap"/>
 
 
 

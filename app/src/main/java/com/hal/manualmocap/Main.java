@@ -185,7 +185,7 @@ public class Main extends Activity implements IVideoPlayer {
         mMap1.moveCamera(CameraUpdateFactory.newCameraPosition(rotated1));
         mMap2.moveCamera(CameraUpdateFactory.newCameraPosition(rotated2));
 
-        BitmapDescriptor labImage = BitmapDescriptorFactory.fromResource(R.drawable.fullroommanual);
+        BitmapDescriptor labImage = BitmapDescriptorFactory.fromResource(R.drawable.disasterzonemanual);
         GroundOverlay trueMap1 = mMap1.addGroundOverlay(new GroundOverlayOptions()
                 .image(labImage)
                 .position(labOrigin, (float) 35)
@@ -738,8 +738,11 @@ public class Main extends Activity implements IVideoPlayer {
 			if (AC_DATA.BatteryChanged) {
 
 				int newPercent = (int) (((battery_double - 9.8)/(11.0-9.8)) * 100);
-				if(newPercent > 100) newPercent = 100;
-				if(newPercent < percent) {
+				if(newPercent > 100) {
+					newPercent = 100;
+					battery_level.setText("" + newPercent + " %");
+				}
+				else if(newPercent < percent) {
 					battery_level.setText("" + newPercent + " %");
 					percent = newPercent;
 				}
