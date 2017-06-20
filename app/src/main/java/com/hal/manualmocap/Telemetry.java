@@ -116,9 +116,9 @@ public class Telemetry {
 
             AircraftData.Heading = ParsedData[5];
             AircraftData.Position = new LatLng(Double.parseDouble(ParsedData[6]), Double.parseDouble(ParsedData[7]));
-			AircraftData.Altitude = ParsedData[10].substring(0, ParsedData[10].indexOf(".") + 1);
+			AircraftData.Altitude = ParsedData[10].substring(0, ParsedData[10].indexOf(".") + 2);
 
-			if(Integer.parseInt(AircraftData.Altitude) <= 0) AircraftData.Altitude = "0.0";
+			if(Float.parseFloat(AircraftData.Altitude) <= 0) AircraftData.Altitude = "0.0";
 			AircraftData.Altitude = AircraftData.Altitude + " m";
 
 			if(AircraftData.AC_Enabled){
@@ -139,7 +139,10 @@ public class Telemetry {
 			Minutes = TimeUnit.SECONDS.toMinutes(FlightTime);
 			FlightTime = FlightTime - TimeUnit.MINUTES.toSeconds(Minutes);
 
-			AircraftData.FlightTime = Long.toString(Hours) + ":" + Long.toString(Minutes) + ":" + Long.toString(FlightTime);
+			AircraftData.FlightTime = Long.toString(Minutes) + ":";
+			if(Minutes < 10) AircraftData.FlightTime = "0" + AircraftData.FlightTime;
+			if(FlightTime < 10) AircraftData.FlightTime = AircraftData.FlightTime + "0" + Long.toString(FlightTime);
+			else AircraftData.FlightTime = AircraftData.FlightTime + Long.toString(FlightTime);
 
 			AircraftData.ApStatusChanged = true;
 			ViewChanged = true;

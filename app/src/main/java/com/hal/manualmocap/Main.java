@@ -114,6 +114,8 @@ public class Main extends Activity implements IVideoPlayer {
     boolean DEBUG=true;
     boolean TcpSettingsChanged;
     boolean UdpSettingsChanged;
+	boolean lowBatteryUnread = true;
+	boolean emptyBatteryUnread = true;
     String AppPassword;
 
     private GoogleMap mMap1, mMap2;
@@ -264,8 +266,8 @@ public class Main extends Activity implements IVideoPlayer {
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) < 60) {
                     //js1.stored_throttle = js1.getY(); had been used for a throttle that doesn't snap back to center
-                    if(js1.getY()>30) AC_DATA.throttle = 84;
-                    else if(js1.getY()<-30) AC_DATA.throttle = 42;
+                    if(js1.getY()>30) AC_DATA.throttle = 88;
+                    else if(js1.getY()<-30) AC_DATA.throttle = 40;
                     else AC_DATA.throttle = 63;
                     //xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
                     //yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
@@ -721,46 +723,52 @@ public class Main extends Activity implements IVideoPlayer {
         protected void onProgressUpdate(String... value) {
             super.onProgressUpdate(value);
 
-			Bitmap bitmap = Bitmap.createBitmap(
-					55, // Width
-					110, // Height
-					Bitmap.Config.ARGB_8888 // Config
-			);
-			Canvas canvas = new Canvas(bitmap);
-			//canvas.drawColor(Color.BLACK);
-			Paint paint = new Paint();
-			paint.setStyle(Paint.Style.FILL);
-			paint.setAntiAlias(true);
-			double battery_double = Double.parseDouble(AC_DATA.AircraftData.Battery);
-			double battery_width = (12.5 - battery_double) / (.027);
-			int val = (int) battery_width;
-
 			if (AC_DATA.BatteryChanged) {
 
-				int newPercent = (int) (((battery_double - 9.8)/(11.0-9.8)) * 100);
-				if(newPercent > 100) {
-					newPercent = 100;
-					battery_level.setText("" + newPercent + " %");
+				Bitmap bitmap = Bitmap.createBitmap(
+						55, // Width
+						110, // Height
+						Bitmap.Config.ARGB_8888 // Config
+				);
+				Canvas canvas = new Canvas(bitmap);
+				//canvas.drawColor(Color.BLACK);
+				Paint paint = new Paint();
+				paint.setStyle(Paint.Style.FILL);
+				paint.setAntiAlias(true);
+				double battery_double = Double.parseDouble(AC_DATA.AircraftData.Battery);
+				double battery_width = (12.5 - battery_double) / (.027);
+				int val = (int) battery_width;
+
+
+				int newPercent = (int) (((battery_double - 9.8)/(10.9-9.8)) * 100);
+				if(newPercent >= 100 && percent >= 100){
+					battery_level.setText("" + percent + " %");
 				}
-				else if(newPercent < percent) {
+				if(newPercent < percent) {
 					battery_level.setText("" + newPercent + " %");
 					percent = newPercent;
 				}
 
 
-				if ( battery_double > 10.4) {
+				if (percent> 66) {
 					paint.setColor(Color.parseColor("#18A347"));
 				}
-				if (10.4 >= battery_double && battery_double >= 10.1) {
-					paint.setARGB(219, 180, 36, 1);
+				if (66 >= percent && percent >= 33) {
+					paint.setColor(Color.YELLOW);
 
 				}
-				if (10.1 > battery_double && battery_double > 9.8) {
+				if (33 > percent && percent > 10) {
 					paint.setColor(Color.parseColor("#B0090E"));
-					Toast.makeText(getApplicationContext(), "Warning: Low Battery", Toast.LENGTH_SHORT);
+					if(lowBatteryUnread) {
+						Toast.makeText(getApplicationContext(), "Warning: Low Battery", Toast.LENGTH_SHORT).show();
+						lowBatteryUnread = false;
+					}
 				}
-				if (battery_double <= 9.8) {
-					Toast.makeText(getApplicationContext(), "No battery remaining. Land immediately", Toast.LENGTH_SHORT);
+				if (percent <= 10) {
+					if(emptyBatteryUnread) {
+						Toast.makeText(getApplicationContext(), "No battery remaining. Land immediately", Toast.LENGTH_SHORT).show();
+						emptyBatteryUnread = false;
+					}
 				}
 				int padding = 10;
 				Rect rectangle = new Rect(
@@ -773,7 +781,7 @@ public class Main extends Activity implements IVideoPlayer {
 				canvas.drawRect(rectangle, paint);
 				mImageView.setImageBitmap(bitmap);
 				mImageView.setBackgroundResource(R.drawable.battery_image_empty);
-
+				AC_DATA.BatteryChanged = false;
 			}
 
 
