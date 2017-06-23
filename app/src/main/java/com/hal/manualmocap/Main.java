@@ -744,7 +744,7 @@ public class Main extends Activity implements IVideoPlayer {
 				if(newPercent >= 100 && percent >= 100){
 					battery_level.setText("" + percent + " %");
 				}
-				if(newPercent < percent) {
+				if(newPercent < percent && newPercent >= 0) {
 					battery_level.setText("" + newPercent + " %");
 					percent = newPercent;
 				}
