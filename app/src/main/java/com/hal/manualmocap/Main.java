@@ -187,14 +187,14 @@ public class Main extends Activity implements IVideoPlayer {
         mMap1.moveCamera(CameraUpdateFactory.newCameraPosition(rotated1));
         mMap2.moveCamera(CameraUpdateFactory.newCameraPosition(rotated2));
 
-        BitmapDescriptor labImage = BitmapDescriptorFactory.fromResource(R.drawable.disasterzonemanual);
+        BitmapDescriptor labImage = BitmapDescriptorFactory.fromResource(R.drawable.croppedexperimentzone);
         GroundOverlay trueMap1 = mMap1.addGroundOverlay(new GroundOverlayOptions()
                 .image(labImage)
-                .position(labOrigin, (float) 35)
+                .position(labOrigin, (float) 35.05)
                 .bearing(90.0f));
         GroundOverlay trueMap2 = mMap2.addGroundOverlay(new GroundOverlayOptions()
                 .image(labImage)
-                .position(labOrigin, (float) 35)
+                .position(labOrigin, (float) 35.05)
                 .bearing(90.0f));
 
 
@@ -275,8 +275,8 @@ public class Main extends Activity implements IVideoPlayer {
                 //checks to see if the joystick is in the yaw region
                 else if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) >= 72) {
-                    if(js1.getX()>0) AC_DATA.yaw = 15;      //right button for yaw
-                    if(js1.getX()<0) AC_DATA.yaw = -15;     //left button for yaw
+                    if(js1.getX()>0) AC_DATA.yaw = 10;      //right button for yaw
+                    if(js1.getX()<0) AC_DATA.yaw = -10;     //left button for yaw
                     //xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
                     //yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
@@ -297,8 +297,8 @@ public class Main extends Activity implements IVideoPlayer {
                 js2.drawStick(arg1);
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE)) {
-                    AC_DATA.roll = (int) (js2.getX()/4.0f);
-                    AC_DATA.pitch = (int) -(js2.getY()/4.0f);
+                    AC_DATA.roll = (int) (js2.getX()/4.7f);
+                    AC_DATA.pitch = (int) -(js2.getY()/4.7f);
                     //xView2.setText("X : " + String.valueOf(AC_DATA.roll));
                     //yView2.setText("Y : " + String.valueOf(AC_DATA.pitch));
                 }
@@ -337,7 +337,6 @@ public class Main extends Activity implements IVideoPlayer {
                     mLibVLC2.stop();
                     try{
                         mLibVLC1 = new LibVLC();
-                        mLibVLC1.setAout(mLibVLC1.AOUT_AUDIOTRACK);
                         mLibVLC1.setVout(mLibVLC1.VOUT_ANDROID_SURFACE);
                         mLibVLC1.setHardwareAcceleration(LibVLC.HW_ACCELERATION_FULL);
                         mLibVLC1.init(getApplicationContext());
@@ -352,8 +351,10 @@ public class Main extends Activity implements IVideoPlayer {
                     List<String> options_list = new ArrayList<String>(Arrays.asList(temp_options));
 
 
-                    options_list.set(0,":file-caching=2000");
-                    options_list.set(1,":network-caching=150");
+                    options_list.add(":file-caching=10000");
+                    options_list.add(":network-caching=1");
+                    options_list.add("--clock-jitter=0");
+                    options_list.add(":clock-synchro=0");
                     new_options = options_list.toArray(new String[options_list.size()]);
                     mLibVLC1.playMRL(mMediaUrl1,new_options);
 
@@ -363,7 +364,6 @@ public class Main extends Activity implements IVideoPlayer {
                     try {
 
                         mLibVLC2 = new LibVLC();
-                        mLibVLC2.setAout(mLibVLC2.AOUT_AUDIOTRACK);
                         mLibVLC2.setVout(mLibVLC2.VOUT_ANDROID_SURFACE);
                         mLibVLC2.setHardwareAcceleration(LibVLC.HW_ACCELERATION_FULL);
                         mLibVLC2.init(getApplicationContext());
@@ -377,8 +377,10 @@ public class Main extends Activity implements IVideoPlayer {
                     List<String> options_list = new ArrayList<String>(Arrays.asList(temp_options));
 
 
-                    options_list.set(0,":file-caching=2000");
-                    options_list.set(1,":network-caching=150");
+                    options_list.add(":file-caching=10000");
+                    options_list.add(":network-caching=1");
+                    options_list.add("--clock-jitter=0");
+                    options_list.add(":clock-synchro=0");
                     new_options = options_list.toArray(new String[options_list.size()]);
                     mLibVLC2.playMRL(mMediaUrl2,new_options);
 
@@ -568,11 +570,10 @@ public class Main extends Activity implements IVideoPlayer {
         mSurfaceFrame2 = (FrameLayout) findViewById(R.id.player_surface_frame_small);
         //mMediaUrl = getIntent().getExtras().getString("videoUrl");
         try {
-
             mLibVLC2 = new LibVLC();
-            mLibVLC2.setAout(mLibVLC2.AOUT_AUDIOTRACK);
             mLibVLC2.setVout(mLibVLC2.VOUT_ANDROID_SURFACE);
             mLibVLC2.setHardwareAcceleration(LibVLC.HW_ACCELERATION_FULL);
+
             mLibVLC2.init(getApplicationContext());
 
         } catch (LibVlcException e){
@@ -588,8 +589,10 @@ public class Main extends Activity implements IVideoPlayer {
         List<String> options_list = new ArrayList<String>(Arrays.asList(temp_options));
 
 
-        options_list.set(0,":file-caching=2000");
-        options_list.set(1,":network-caching=150");
+        options_list.add(":file-caching=10000");
+        options_list.add(":network-caching=1");
+        options_list.add("--clock-jitter=0");
+        options_list.add(":clock-synchro=0");
         new_options = options_list.toArray(new String[options_list.size()]);
         mLibVLC2.playMRL(mMediaUrl2,new_options);
         //mLibVLC2.playMRL(mMediaUrl2,new_options);
