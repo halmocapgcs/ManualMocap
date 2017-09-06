@@ -9,6 +9,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
@@ -81,6 +82,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static android.R.attr.delay;
+import static android.R.attr.right;
 
 public class Main extends Activity implements IVideoPlayer {
 
@@ -89,6 +91,8 @@ public class Main extends Activity implements IVideoPlayer {
     public static final String SERVER_IP_ADDRESS = "server_ip_adress_text";
     public static final String SERVER_PORT_ADDRESS = "server_port_number_text";
     public static final String LOCAL_PORT_ADDRESS = "local_port_number_text";
+    public static final int DRONE_LENGTH = 5;
+    public static final int DISTANCE_FROM_WALL = 12;
 
     private int mVideoHeight;
     private int mVideoWidth;
@@ -96,8 +100,11 @@ public class Main extends Activity implements IVideoPlayer {
     private int mVideoVisibleWidth;
     private int mSarNum;
     private int mSarDen;
+    private float multiplier;
+    private double rawAltitude;
 
 	public int percent = 100;
+    public int AcId = 31;
 
     private int click_count = 0;
     private SurfaceView mSurfaceView1, mSurfaceView2 ;
@@ -119,9 +126,9 @@ public class Main extends Activity implements IVideoPlayer {
     String AppPassword;
 
     private GoogleMap mMap1, mMap2;
-
+    public Point currentPosition;
     public Telemetry AC_DATA;
-    public int AcId = 31;
+
     SharedPreferences AppSettings;
 
     private ReadTelemetry TelemetryAsyncTask;
@@ -210,26 +217,41 @@ public class Main extends Activity implements IVideoPlayer {
         mMap2.getUiSettings().setTiltGesturesEnabled(false);
         mMap2.getUiSettings().setCompassEnabled(false);
 
-        mMap1.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-            @Override
-            public void onMapClick(LatLng latLng) {
-                Log.d("coord", latLng.toString());
-            }
-        });
+//        mMap1.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+//            @Override
+//            public void onMapClick(LatLng latLng) {
+//                Marker marker = mMap1.addMarker(new MarkerOptions()
+//                .position(latLng)
+//                .draggable(true));
+//            }
+//        });
+//
+//        mMap1.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
+//            @Override
+//            public void onMarkerDragStart(Marker marker) {
+//
+//            }
+//
+//            @Override
+//            public void onMarkerDrag(Marker marker) {
+//                Point currentPoint = mMap1.getProjection().toScreenLocation(marker.getPosition());
+//                Log.d("location", "x: " + currentPoint.x + "    y: " + currentPoint.y);
+//            }
+//
+//            @Override
+//            public void onMarkerDragEnd(Marker marker) {
+//                Point currentPoint = mMap1.getProjection().toScreenLocation(marker.getPosition());
+//                Log.d("location", "x: " + currentPoint.x + "    y: " + currentPoint.y);
+//            }
+//        });
+//
+//        mMap2.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+//            @Override
+//            public void onMapClick(LatLng latLng) {
+//                Log.d("coord", latLng.toString());
+//            }
+//        });
 
-        mMap2.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-            @Override
-            public void onMapClick(LatLng latLng) {
-                Log.d("coord", latLng.toString());
-            }
-        });
-
-        //setup joysticks
-       /* xView1 = (TextView)findViewById(R.id.x_position);
-        yView1 = (TextView)findViewById(R.id.y_position);
-        xView2 = (TextView)findViewById(R.id.x_position_right);
-        yView2 = (TextView)findViewById(R.id.y_position_right);
-        */
         //setup health and status
 		mImageView = (ImageView)findViewById(R.id.iv_battery);
         battery_level = (TextView)findViewById(R.id.Bat_Vol_On_Map);
@@ -247,16 +269,6 @@ public class Main extends Activity implements IVideoPlayer {
 
         vf_big = (ViewFlipper)findViewById(R.id.vf_1);
         vf_small = (ViewFlipper)findViewById(R.id.vf_2);
-        /*Button_LaunchInspectionMode = (Button) findViewById(R.id.InspectionMode);
-        Button_LaunchInspectionMode.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String url = "file:///sdcard/DCIM/video.sdp";
-                Intent inspect = new Intent(getApplicationContext(), InspectionMode.class);
-                inspect.putExtra("videoUrl", url);
-                startActivity(inspect);
-            }
-        });*/
 
         //joystick for throttle and yaw
         layout_joystick_left.setOnTouchListener(new View.OnTouchListener() {
@@ -266,26 +278,20 @@ public class Main extends Activity implements IVideoPlayer {
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) < 60) {
                     //js1.stored_throttle = js1.getY(); had been used for a throttle that doesn't snap back to center
-                    if(js1.getY()>30) AC_DATA.throttle = 88;
+                    if(js1.getY()>30 && belowAltitude()) AC_DATA.throttle = 88;
                     else if(js1.getY()<-30) AC_DATA.throttle = 40;
                     else AC_DATA.throttle = 63;
-                    //xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
-                    //yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
                 //checks to see if the joystick is in the yaw region
                 else if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) >= 72) {
                     if(js1.getX()>0) AC_DATA.yaw = 10;      //right button for yaw
                     if(js1.getX()<0) AC_DATA.yaw = -10;     //left button for yaw
-                    //xView1.setText("X : " + String.valueOf(AC_DATA.yaw));
-                    //yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
                 //reset value of yaw but not throttle when lifting up
                 else if(arg1.getAction() == MotionEvent.ACTION_UP) {
                     AC_DATA.yaw = 0;
 					AC_DATA.throttle = 63;
-                    //xView1.setText("X : 0");
-                    //yView1.setText("Y : " + String.valueOf(AC_DATA.throttle));
                 }
                 return true;
             }
@@ -297,17 +303,22 @@ public class Main extends Activity implements IVideoPlayer {
                 js2.drawStick(arg1);
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE)) {
-                    AC_DATA.roll = (int) (js2.getX()/4.7f);
-                    AC_DATA.pitch = (int) -(js2.getY()/4.7f);
-                    //xView2.setText("X : " + String.valueOf(AC_DATA.roll));
-                    //yView2.setText("Y : " + String.valueOf(AC_DATA.pitch));
+                    if(nearWall(currentPosition, DRONE_LENGTH, DISTANCE_FROM_WALL)){
+                        multiplier = 2.0f;
+                    } else if(nearWall(currentPosition, DRONE_LENGTH, 1.5* DISTANCE_FROM_WALL)){
+                        multiplier = 1.75f;
+                    } else if(nearWall(currentPosition, DRONE_LENGTH, 2*DISTANCE_FROM_WALL)){
+                        multiplier = 1.5f;
+                    } else {
+                        multiplier = 1.0f;
+                    }
+                    AC_DATA.roll = (int) (js2.getX()/(4.5f * multiplier));
+                    AC_DATA.pitch = (int) -(js2.getY()/(4.5f * multiplier));
                 }
                 //reset both values to zero when lifting up or in central zone
                 else if(arg1.getAction() == MotionEvent.ACTION_UP) {
                     AC_DATA.roll = 0;
                     AC_DATA.pitch = 0;
-                    //xView2.setText("X : 0");
-                    //yView2.setText("Y : 0");
                 }
                 return true;
             }
@@ -337,8 +348,10 @@ public class Main extends Activity implements IVideoPlayer {
                     mLibVLC2.stop();
                     try{
                         mLibVLC1 = new LibVLC();
+                        mLibVLC1.setAout(mLibVLC1.AOUT_AUDIOTRACK);
                         mLibVLC1.setVout(mLibVLC1.VOUT_ANDROID_SURFACE);
-                        mLibVLC1.setHardwareAcceleration(LibVLC.HW_ACCELERATION_FULL);
+                        mLibVLC1.setHardwareAcceleration(LibVLC.HW_ACCELERATION_AUTOMATIC);
+                        mLibVLC1.setChroma("YV12");
                         mLibVLC1.init(getApplicationContext());
 
                     }
@@ -351,10 +364,10 @@ public class Main extends Activity implements IVideoPlayer {
                     List<String> options_list = new ArrayList<String>(Arrays.asList(temp_options));
 
 
-                    options_list.add(":file-caching=10000");
+                    options_list.add(":file-caching=2000");
                     options_list.add(":network-caching=1");
-                    options_list.add("--clock-jitter=0");
-                    options_list.add(":clock-synchro=0");
+                    options_list.add(":clock-jitter=0");
+                    options_list.add("--clock-synchro=1");
                     new_options = options_list.toArray(new String[options_list.size()]);
                     mLibVLC1.playMRL(mMediaUrl1,new_options);
 
@@ -364,8 +377,10 @@ public class Main extends Activity implements IVideoPlayer {
                     try {
 
                         mLibVLC2 = new LibVLC();
+                        mLibVLC2.setAout(mLibVLC2.AOUT_AUDIOTRACK);
                         mLibVLC2.setVout(mLibVLC2.VOUT_ANDROID_SURFACE);
-                        mLibVLC2.setHardwareAcceleration(LibVLC.HW_ACCELERATION_FULL);
+                        mLibVLC2.setHardwareAcceleration(LibVLC.HW_ACCELERATION_AUTOMATIC);
+                        mLibVLC2.setChroma("YV12");;
                         mLibVLC2.init(getApplicationContext());
 
                     } catch (LibVlcException e){
@@ -377,10 +392,10 @@ public class Main extends Activity implements IVideoPlayer {
                     List<String> options_list = new ArrayList<String>(Arrays.asList(temp_options));
 
 
-                    options_list.add(":file-caching=10000");
+                    options_list.add(":file-caching=2000");
                     options_list.add(":network-caching=1");
-                    options_list.add("--clock-jitter=0");
-                    options_list.add(":clock-synchro=0");
+                    options_list.add(":clock-jitter=0");
+                    options_list.add("--clock-synchro=1");
                     new_options = options_list.toArray(new String[options_list.size()]);
                     mLibVLC2.playMRL(mMediaUrl2,new_options);
 
@@ -408,6 +423,8 @@ public class Main extends Activity implements IVideoPlayer {
         if (AC_DATA.AircraftData.AC_Enabled && AC_DATA.AircraftData.AC_Position_Changed) {
             AC_DATA.AircraftData.AC_Marker1.setPosition(convert_to_lab(AC_DATA.AircraftData.Position));
             AC_DATA.AircraftData.AC_Marker1.setRotation(Float.parseFloat(AC_DATA.AircraftData.Heading));
+
+            currentPosition = mMap1.getProjection().toScreenLocation(AC_DATA.AircraftData.AC_Marker1.getPosition());
 
 			AC_DATA.AircraftData.AC_Marker2.setPosition(convert_to_lab(AC_DATA.AircraftData.Position));
 			AC_DATA.AircraftData.AC_Marker2.setRotation(Float.parseFloat(AC_DATA.AircraftData.Heading));
@@ -554,6 +571,80 @@ public class Main extends Activity implements IVideoPlayer {
 		return newPosition;
 	}
 
+    public boolean belowAltitude(){
+        return (AC_DATA.AircraftData.RawAltitude <= 2.0);
+    }
+
+    public boolean nearWall(Point currentPosition, int droneSize, double distanceFromWall){
+        int leftBound = currentPosition.x - droneSize;
+        int rightBound = currentPosition.x + droneSize;
+        int topBound = currentPosition.y - droneSize;
+        int bottomBound = currentPosition.y + droneSize;
+
+        //garage door
+        if(rightBound >= 670-distanceFromWall) return true;
+
+        //bottom wall
+        if(bottomBound >= 580-distanceFromWall && leftBound >= 434) return true;
+
+        //bottom barrels
+        if(leftBound <= 434 + distanceFromWall && bottomBound >= 500 - distanceFromWall) return true;
+
+        //wall by bottom barrels
+        if(((leftBound >= 358 - distanceFromWall && leftBound <=358+distanceFromWall) ||
+                (rightBound >= 358 - distanceFromWall && rightBound <=358+distanceFromWall))
+                && bottomBound >= 332 - distanceFromWall) return true;
+
+        //wall near climbing wall
+        if(leftBound >= 67 && rightBound <= 358 && bottomBound >= 417 - distanceFromWall) return true;
+
+        //wall next to common room
+        if(leftBound <= 67 + distanceFromWall) return true;
+
+        //upper wall
+        if(topBound <= 59 + distanceFromWall) return true;
+
+        //top barrels
+        if(topBound <= 120 + distanceFromWall && leftBound >= 358 && rightBound <=454) return true;
+
+        //control room
+        if(topBound <= 332 + distanceFromWall && rightBound >=449-distanceFromWall) return true;
+
+        //right tunnel wall
+        if(rightBound >= 123 - distanceFromWall && rightBound <= 123 + distanceFromWall
+                && topBound <= 338 && bottomBound >= 228) return true;
+
+        //opposite side of right tunnel wall
+        if(leftBound <= 123 + distanceFromWall && leftBound >= 123 + distanceFromWall
+                && topBound <= 338 && bottomBound >= 228) return true;
+
+        //middle horizontal wall, bottom
+        if(topBound <= 228 + distanceFromWall && topBound >= 228 - distanceFromWall
+                && leftBound >= 123 && leftBound <=358) return true;
+
+        //middle horizontal wall, top
+        if(bottomBound >= 220 -distanceFromWall && bottomBound <= 220 + distanceFromWall
+                && leftBound >= 123 && rightBound <= 358) return true;
+
+        //bottom portion of right wall, left
+        if(rightBound >= 358 - distanceFromWall && rightBound <= 358 + distanceFromWall
+                && bottomBound <= 228 && bottomBound >= 160) return true;
+
+        //bottom portion of right wall, right
+        if(leftBound >= 358 - distanceFromWall && leftBound <= 358 + distanceFromWall
+                && bottomBound <= 228 && bottomBound >= 160) return true;
+
+        //top portion of right wall, left
+        if(rightBound >= 353 - distanceFromWall && rightBound <= 353 + distanceFromWall
+                && topBound <= 120) return true;
+
+        //doorway
+        if(currentPosition.x>= 358 -distanceFromWall && currentPosition.x<=358 + distanceFromWall
+                && (topBound<=120 || bottomBound>=160)) return true;
+
+        return false;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -571,9 +662,10 @@ public class Main extends Activity implements IVideoPlayer {
         //mMediaUrl = getIntent().getExtras().getString("videoUrl");
         try {
             mLibVLC2 = new LibVLC();
+            mLibVLC2.setAout(mLibVLC2.AOUT_AUDIOTRACK);
             mLibVLC2.setVout(mLibVLC2.VOUT_ANDROID_SURFACE);
-            mLibVLC2.setHardwareAcceleration(LibVLC.HW_ACCELERATION_FULL);
-
+            mLibVLC2.setHardwareAcceleration(LibVLC.HW_ACCELERATION_AUTOMATIC);
+            mLibVLC2.setChroma("YV12");
             mLibVLC2.init(getApplicationContext());
 
         } catch (LibVlcException e){
@@ -589,10 +681,10 @@ public class Main extends Activity implements IVideoPlayer {
         List<String> options_list = new ArrayList<String>(Arrays.asList(temp_options));
 
 
-        options_list.add(":file-caching=10000");
+        options_list.add(":file-caching=2000");
         options_list.add(":network-caching=1");
-        options_list.add("--clock-jitter=0");
-        options_list.add(":clock-synchro=0");
+        options_list.add(":clock-jitter=0");
+        options_list.add("--clock-synchro=1");
         new_options = options_list.toArray(new String[options_list.size()]);
         mLibVLC2.playMRL(mMediaUrl2,new_options);
         //mLibVLC2.playMRL(mMediaUrl2,new_options);
@@ -792,7 +884,6 @@ public class Main extends Activity implements IVideoPlayer {
 
 			if (AC_DATA.AircraftData.Altitude_Changed) {
 				altitude.setText(AC_DATA.AircraftData.Altitude);
-
 				AC_DATA.AircraftData.Altitude_Changed = false;
 			}
 

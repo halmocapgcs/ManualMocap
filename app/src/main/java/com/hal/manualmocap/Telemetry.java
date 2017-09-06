@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 public class Telemetry {
     boolean DEBUG;
     boolean unopened = true;
-    boolean inspecting = false;
     public String SendToTcp = null;
 
     //Visual change flags
@@ -85,7 +84,7 @@ public class Telemetry {
             }
 
             //get_new_aircraft_data(AcId);
-            if(!inspecting) publish_joystick_info(AcId, yaw, throttle, roll, pitch);
+            publish_joystick_info(AcId, yaw, throttle, roll, pitch);
 
         } catch (Exception e) {
             //ignore java.net.SocketTimeoutException
@@ -117,9 +116,11 @@ public class Telemetry {
             AircraftData.Heading = ParsedData[5];
             AircraftData.Position = new LatLng(Double.parseDouble(ParsedData[6]), Double.parseDouble(ParsedData[7]));
 			AircraftData.Altitude = ParsedData[10].substring(0, ParsedData[10].indexOf(".") + 2);
+            AircraftData.RawAltitude = Double.parseDouble(AircraftData.Altitude);
+            AircraftData.RawAltitude += 0.1; //adjust for paparazzi ground offset
 
-			if(Float.parseFloat(AircraftData.Altitude) <= 0) AircraftData.Altitude = "0.0";
-			AircraftData.Altitude = AircraftData.Altitude + " m";
+            AircraftData.Altitude = AircraftData.RawAltitude.toString();
+			AircraftData.Altitude = AircraftData.Altitude.substring(0, AircraftData.Altitude.indexOf(".") + 2) + " m";
 
 			if(AircraftData.AC_Enabled){
                 AircraftData.AC_Position_Changed = true;
@@ -180,6 +181,7 @@ public class Telemetry {
         Marker AC_Marker1, AC_Marker2;
         Bitmap AC_Logo;
         LatLng Position;
+        Double RawAltitude;
 		String Altitude;
         String Heading = "0";
 		String FlightTime;
