@@ -119,8 +119,6 @@ public class Main extends Activity implements IVideoPlayer {
     private String[] new_options;
 
     boolean DEBUG=true;
-    boolean TcpSettingsChanged;
-    boolean UdpSettingsChanged;
 	boolean lowBatteryUnread = true;
 	boolean emptyBatteryUnread = true;
     String AppPassword;
@@ -278,7 +276,7 @@ public class Main extends Activity implements IVideoPlayer {
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) < 60) {
                     //js1.stored_throttle = js1.getY(); had been used for a throttle that doesn't snap back to center
-                    if(js1.getY()>30 && belowAltitude()) AC_DATA.throttle = 88;
+                    if(js1.getY()>30 && belowAltitude()) AC_DATA.throttle = 82;
                     else if(js1.getY()<-30) AC_DATA.throttle = 40;
                     else AC_DATA.throttle = 63;
                 }
@@ -303,6 +301,7 @@ public class Main extends Activity implements IVideoPlayer {
                 js2.drawStick(arg1);
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE)) {
+                    currentPosition = mMap1.getProjection().toScreenLocation(convert_to_lab(AC_DATA.AircraftData.Position));
                     if(nearWall(currentPosition, DRONE_LENGTH, DISTANCE_FROM_WALL)){
                         multiplier = 2.0f;
                     } else if(nearWall(currentPosition, DRONE_LENGTH, 1.5* DISTANCE_FROM_WALL)){
@@ -423,8 +422,6 @@ public class Main extends Activity implements IVideoPlayer {
         if (AC_DATA.AircraftData.AC_Enabled && AC_DATA.AircraftData.AC_Position_Changed) {
             AC_DATA.AircraftData.AC_Marker1.setPosition(convert_to_lab(AC_DATA.AircraftData.Position));
             AC_DATA.AircraftData.AC_Marker1.setRotation(Float.parseFloat(AC_DATA.AircraftData.Heading));
-
-            currentPosition = mMap1.getProjection().toScreenLocation(AC_DATA.AircraftData.AC_Marker1.getPosition());
 
 			AC_DATA.AircraftData.AC_Marker2.setPosition(convert_to_lab(AC_DATA.AircraftData.Position));
 			AC_DATA.AircraftData.AC_Marker2.setRotation(Float.parseFloat(AC_DATA.AircraftData.Heading));
@@ -582,13 +579,13 @@ public class Main extends Activity implements IVideoPlayer {
         int bottomBound = currentPosition.y + droneSize;
 
         //garage door
-        if(rightBound >= 670-distanceFromWall) return true;
+        if(rightBound >= 700-distanceFromWall) return true;
 
         //bottom wall
         if(bottomBound >= 580-distanceFromWall && leftBound >= 434) return true;
 
         //bottom barrels
-        if(leftBound <= 434 + distanceFromWall && bottomBound >= 500 - distanceFromWall) return true;
+        if(leftBound <= 434 + distanceFromWall && bottomBound >= 510 - distanceFromWall) return true;
 
         //wall by bottom barrels
         if(((leftBound >= 358 - distanceFromWall && leftBound <=358+distanceFromWall) ||
@@ -768,36 +765,10 @@ public class Main extends Activity implements IVideoPlayer {
             mTCPthread.start();
 
             while (isTaskRunning) {
-
-                //Check if settings changed
-                if (TcpSettingsChanged) {
-                    AC_DATA.mTcpClient.stopClient();
-                    try {
-                        Thread.sleep(200);
-                        //AC_DATA.mTcpClient.SERVERIP= AC_DATA.ServerIp;
-                        //AC_DATA.mTcpClient.SERVERPORT= AC_DATA.ServerTcpPort;
-                        mTCPthread =  new Thread(new ClientThread());
-                        mTCPthread.start();
-                        TcpSettingsChanged=false;
-                        if (DEBUG) Log.d("PPRZ_info", "TcpSettingsChanged applied");
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                if (UdpSettingsChanged) {
-                    AC_DATA.setup_udp();
-                    //AC_DATA.tcp_connection();
-                    UdpSettingsChanged = false;
-                    if (DEBUG) Log.d("PPRZ_info", "UdpSettingsChanged applied");
-                }
-
-                // Log.e("PPRZ_info", "3");
                 //1 check if any string waiting to be send to tcp
                 if (!(null == AC_DATA.SendToTcp)) {
                     AC_DATA.mTcpClient.sendMessage(AC_DATA.SendToTcp);
                     AC_DATA.SendToTcp = null;
-
                 }
 
                 //3 try to read & parse udp data
@@ -817,6 +788,8 @@ public class Main extends Activity implements IVideoPlayer {
         @Override
         protected void onProgressUpdate(String... value) {
             super.onProgressUpdate(value);
+
+            refresh_map_data();
 
 			if (AC_DATA.BatteryChanged) {
 
@@ -878,9 +851,6 @@ public class Main extends Activity implements IVideoPlayer {
 				mImageView.setBackgroundResource(R.drawable.battery_image_empty);
 				AC_DATA.BatteryChanged = false;
 			}
-
-
-			refresh_map_data();
 
 			if (AC_DATA.AircraftData.Altitude_Changed) {
 				altitude.setText(AC_DATA.AircraftData.Altitude);
