@@ -93,6 +93,7 @@ public class Main extends Activity implements IVideoPlayer {
     public static final String LOCAL_PORT_ADDRESS = "local_port_number_text";
     public static final int DRONE_LENGTH = 5;
     public static final int DISTANCE_FROM_WALL = 12;
+    private static final LatLng LAB_ORIGIN = new LatLng(36.005417, -78.940984);
 
     private int mVideoHeight;
     private int mVideoWidth;
@@ -124,6 +125,9 @@ public class Main extends Activity implements IVideoPlayer {
     String AppPassword;
 
     private GoogleMap mMap1, mMap2;
+    private GroundOverlay trueMap1, trueMap2;
+    private int mapIndex = 0;
+    private int[] mapImages = {R.drawable.modulezone_manual, R.drawable.trainingzone_manual, R.drawable.croppedexperimentzone};
     public Point currentPosition;
     public Telemetry AC_DATA;
 
@@ -137,7 +141,7 @@ public class Main extends Activity implements IVideoPlayer {
 
     //joystick variables
     RelativeLayout layout_joystick_left, layout_joystick_right;
-    Button power_button,toggle,toggle_to_video;
+    Button power_button,toggle, map_swap, toggle_to_video;
     ViewFlipper vf_big,vf_small;
     JStick js1, js2;
     //TextView xView1, xView2, yView1, yView2;
@@ -176,79 +180,32 @@ public class Main extends Activity implements IVideoPlayer {
 
         mMap1.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
         mMap2.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
-        LatLng labOrigin = new LatLng(36.005417, -78.940984);
-        mMap1.moveCamera(CameraUpdateFactory.newLatLngZoom(labOrigin, 50));
-        mMap2.moveCamera(CameraUpdateFactory.newLatLngZoom(labOrigin, 50));
+        mMap1.moveCamera(CameraUpdateFactory.newLatLngZoom(LAB_ORIGIN, 50));
+        mMap2.moveCamera(CameraUpdateFactory.newLatLngZoom(LAB_ORIGIN, 50));
         CameraPosition rotated1 = new CameraPosition.Builder()
-                .target(labOrigin)
+                .target(LAB_ORIGIN)
                 .zoom(50)
                 .bearing(90.0f)
                 .build();
 		CameraPosition rotated2 = new CameraPosition.Builder()
-				.target(labOrigin)
+				.target(LAB_ORIGIN)
 				.zoom(20)
 				.bearing(90.0f)
 				.build();
         mMap1.moveCamera(CameraUpdateFactory.newCameraPosition(rotated1));
         mMap2.moveCamera(CameraUpdateFactory.newCameraPosition(rotated2));
 
-        BitmapDescriptor labImage = BitmapDescriptorFactory.fromResource(R.drawable.croppedexperimentzone);
-        GroundOverlay trueMap1 = mMap1.addGroundOverlay(new GroundOverlayOptions()
+        BitmapDescriptor labImage = BitmapDescriptorFactory.fromResource(mapImages[mapIndex]);
+        trueMap1 = mMap1.addGroundOverlay(new GroundOverlayOptions()
                 .image(labImage)
-                .position(labOrigin, (float) 35.05)
+                .position(LAB_ORIGIN, (float) 35.05)
                 .bearing(90.0f));
-        GroundOverlay trueMap2 = mMap2.addGroundOverlay(new GroundOverlayOptions()
+        trueMap2 = mMap2.addGroundOverlay(new GroundOverlayOptions()
                 .image(labImage)
-                .position(labOrigin, (float) 35.05)
+                .position(LAB_ORIGIN, (float) 35.05)
                 .bearing(90.0f));
 
-
-
-
-        //Disable zoom and gestures to lock the image in place
-        mMap1.getUiSettings().setAllGesturesEnabled(false);
-        mMap1.getUiSettings().setZoomGesturesEnabled(false);
-        mMap1.getUiSettings().setTiltGesturesEnabled(false);
-        mMap1.getUiSettings().setCompassEnabled(false);
-        mMap2.getUiSettings().setAllGesturesEnabled(false);
-        mMap2.getUiSettings().setZoomGesturesEnabled(false);
-        mMap2.getUiSettings().setTiltGesturesEnabled(false);
-        mMap2.getUiSettings().setCompassEnabled(false);
-
-//        mMap1.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-//            @Override
-//            public void onMapClick(LatLng latLng) {
-//                Marker marker = mMap1.addMarker(new MarkerOptions()
-//                .position(latLng)
-//                .draggable(true));
-//            }
-//        });
-//
-//        mMap1.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
-//            @Override
-//            public void onMarkerDragStart(Marker marker) {
-//
-//            }
-//
-//            @Override
-//            public void onMarkerDrag(Marker marker) {
-//                Point currentPoint = mMap1.getProjection().toScreenLocation(marker.getPosition());
-//                Log.d("location", "x: " + currentPoint.x + "    y: " + currentPoint.y);
-//            }
-//
-//            @Override
-//            public void onMarkerDragEnd(Marker marker) {
-//                Point currentPoint = mMap1.getProjection().toScreenLocation(marker.getPosition());
-//                Log.d("location", "x: " + currentPoint.x + "    y: " + currentPoint.y);
-//            }
-//        });
-//
-//        mMap2.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-//            @Override
-//            public void onMapClick(LatLng latLng) {
-//                Log.d("coord", latLng.toString());
-//            }
-//        });
+        blockMapInteraction();
 
         //setup health and status
 		mImageView = (ImageView)findViewById(R.id.iv_battery);
@@ -260,7 +217,7 @@ public class Main extends Activity implements IVideoPlayer {
         layout_joystick_right = (RelativeLayout)findViewById(R.id.layout_joystick_right);
         power_button = (Button)findViewById(R.id.power_button);
         toggle = (Button)findViewById(R.id.toggle);
-        //toggle_to_video = (Button)findViewById(R.id.toggle_to_video);
+        map_swap = (Button)findViewById(R.id.map_swap);
 
         js1 = new JStick(getApplicationContext(), layout_joystick_left, R.drawable.image_button, "YAW");
         js2 = new JStick(getApplicationContext(), layout_joystick_right, R.drawable.image_button, "PITCH");
@@ -276,7 +233,7 @@ public class Main extends Activity implements IVideoPlayer {
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) < 60) {
                     //js1.stored_throttle = js1.getY(); had been used for a throttle that doesn't snap back to center
-                    if(js1.getY()>30 && belowAltitude()) AC_DATA.throttle = 82;
+                    if(js1.getY()>30 && belowAltitude()) AC_DATA.throttle = 84;
                     else if(js1.getY()<-30) AC_DATA.throttle = 40;
                     else AC_DATA.throttle = 63;
                 }
@@ -323,7 +280,14 @@ public class Main extends Activity implements IVideoPlayer {
             }
         });
 
-        //power button to start the rotors
+        initializePowerButton();
+        initializeMapChangeButton();
+        initializeToggleButton();
+
+
+    }
+
+    private void initializePowerButton() {
         power_button.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View arg0, MotionEvent arg1) {
                 if(arg1.getAction() == MotionEvent.ACTION_DOWN
@@ -338,7 +302,23 @@ public class Main extends Activity implements IVideoPlayer {
                 return true;
             }
         });
+    }
 
+
+    private void initializeMapChangeButton() {
+        map_swap.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                if(++mapIndex > 2) mapIndex = 0;
+                BitmapDescriptor newLabImage = BitmapDescriptorFactory.fromResource(mapImages[mapIndex]);
+                trueMap1.setImage(newLabImage);
+                trueMap2.setImage(newLabImage);
+                return false;
+            }
+        });
+    }
+
+    private void initializeToggleButton() {
         toggle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -406,8 +386,17 @@ public class Main extends Activity implements IVideoPlayer {
 
             }
         });
+    }
 
-
+    private void blockMapInteraction() {
+        mMap1.getUiSettings().setAllGesturesEnabled(false);
+        mMap1.getUiSettings().setZoomGesturesEnabled(false);
+        mMap1.getUiSettings().setTiltGesturesEnabled(false);
+        mMap1.getUiSettings().setCompassEnabled(false);
+        mMap2.getUiSettings().setAllGesturesEnabled(false);
+        mMap2.getUiSettings().setZoomGesturesEnabled(false);
+        mMap2.getUiSettings().setTiltGesturesEnabled(false);
+        mMap2.getUiSettings().setCompassEnabled(false);
     }
 
     public void refresh_map_data(){

@@ -96,6 +96,16 @@
                 android:layout_centerInParent="true"
                 android:background="@drawable/power_button_outline" />
 
+            <Button
+                android:id="@+id/map_swap"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentRight="true"
+                android:background="@android:color/transparent"
+
+                />
+
             <LinearLayout
                 android:orientation="horizontal"
                 android:id="@+id/topFlightBar"
