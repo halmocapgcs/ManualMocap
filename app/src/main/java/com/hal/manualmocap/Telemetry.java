@@ -103,7 +103,6 @@ public class Telemetry {
 
             //If battery is changed this will impact ui
             if (!(bat.equals(AircraftData.Battery))) {
-                Log.d("PPRZ_info", "Old Battery=" + AircraftData.Battery + " New Battery:" + bat);
                 AircraftData.Battery = bat;
                 BatteryChanged = true;
                 ViewChanged = true;

@@ -232,8 +232,8 @@ public class Main extends Activity implements IVideoPlayer {
                 //checks to see if the joystick is in the throttle region
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) < 60) {
-                    //js1.stored_throttle = js1.getY(); had been used for a throttle that doesn't snap back to center
-                    if(js1.getY()>30 && belowAltitude()) AC_DATA.throttle = 84;
+                    if(js1.getY()>30 && belowTakeoffAltitude()) AC_DATA.throttle = 84;
+                    else if(js1.getY()>30 && belowAltitude()) AC_DATA.throttle = 81;
                     else if(js1.getY()<-30) AC_DATA.throttle = 40;
                     else AC_DATA.throttle = 63;
                 }
@@ -559,6 +559,10 @@ public class Main extends Activity implements IVideoPlayer {
 
     public boolean belowAltitude(){
         return (AC_DATA.AircraftData.RawAltitude <= 2.0);
+    }
+
+    private boolean belowTakeoffAltitude() {
+        return AC_DATA.AircraftData.RawAltitude <= 0.5;
     }
 
     public boolean nearWall(Point currentPosition, int droneSize, double distanceFromWall){
