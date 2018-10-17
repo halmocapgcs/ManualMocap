@@ -114,12 +114,8 @@ public class Telemetry {
 
             AircraftData.Heading = ParsedData[5];
             AircraftData.Position = new LatLng(Double.parseDouble(ParsedData[6]), Double.parseDouble(ParsedData[7]));
-			AircraftData.Altitude = ParsedData[10].substring(0, ParsedData[10].indexOf(".") + 2);
-            AircraftData.RawAltitude = Double.parseDouble(AircraftData.Altitude);
-            AircraftData.RawAltitude += 0.1; //adjust for paparazzi ground offset
-
-            AircraftData.Altitude = AircraftData.RawAltitude.toString();
-			AircraftData.Altitude = AircraftData.Altitude.substring(0, AircraftData.Altitude.indexOf(".") + 2) + " m";
+            AircraftData.RawAltitude = Double.toString(Double.parseDouble(ParsedData[10]) + 0.3);
+			AircraftData.Altitude = AircraftData.RawAltitude.substring(0, AircraftData.RawAltitude.indexOf(".") + 2) + " m";
 
 			if(AircraftData.AC_Enabled){
                 AircraftData.AC_Position_Changed = true;
@@ -131,7 +127,8 @@ public class Telemetry {
 		if (LastTelemetryString.matches("(^ground AP_STATUS .*)")) {
 
 			String[] ParsedData = LastTelemetryString.split(" ");
-			Long FlightTime = Long.parseLong(ParsedData[9]);
+            AircraftData.RawFlightTime = ParsedData[9];
+            Long FlightTime = Long.parseLong(ParsedData[9]);
 			Long Hours, Minutes;
 
 			Hours = TimeUnit.SECONDS.toHours(FlightTime);
@@ -180,10 +177,11 @@ public class Telemetry {
         Marker AC_Marker1, AC_Marker2;
         Bitmap AC_Logo;
         LatLng Position;
-        Double RawAltitude;
 		String Altitude;
+        String RawAltitude;
         String Heading = "0";
 		String FlightTime;
+		String RawFlightTime;
     }
 }
 

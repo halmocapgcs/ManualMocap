@@ -195,6 +195,7 @@ public class Main extends Activity implements IVideoPlayer {
         mMap1.moveCamera(CameraUpdateFactory.newCameraPosition(rotated1));
         mMap2.moveCamera(CameraUpdateFactory.newCameraPosition(rotated2));
 
+        Log.d("Maptime", "Begin overlay load");
         BitmapDescriptor labImage = BitmapDescriptorFactory.fromResource(mapImages[mapIndex]);
         trueMap1 = mMap1.addGroundOverlay(new GroundOverlayOptions()
                 .image(labImage)
@@ -558,11 +559,11 @@ public class Main extends Activity implements IVideoPlayer {
 	}
 
     public boolean belowAltitude(){
-        return (AC_DATA.AircraftData.RawAltitude <= 2.0);
+        return (Double.parseDouble(AC_DATA.AircraftData.RawAltitude) <= 2.0);
     }
 
     private boolean belowTakeoffAltitude() {
-        return AC_DATA.AircraftData.RawAltitude <= 0.5;
+        return Double.parseDouble(AC_DATA.AircraftData.RawAltitude) <= 0.5;
     }
 
     public boolean nearWall(Point currentPosition, int droneSize, double distanceFromWall){
