@@ -1,6 +1,8 @@
 package com.hal.manualmocap;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -17,15 +19,19 @@ import android.support.v7.app.ActionBarActivity;
 //import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 //package com.hal.manualmocap;
 import android.app.Activity;
@@ -93,6 +99,7 @@ public class Main extends Activity implements IVideoPlayer {
     public static final String LOCAL_PORT_ADDRESS = "local_port_number_text";
     public static final int DRONE_LENGTH = 5;
     public static final int DISTANCE_FROM_WALL = 12;
+    private static final int MAX_USER_ID = 42;
     private static final LatLng LAB_ORIGIN = new LatLng(36.005417, -78.940984);
 
     private int mVideoHeight;
@@ -138,6 +145,7 @@ public class Main extends Activity implements IVideoPlayer {
     private Thread mTCPthread;
 
     static DatagramSocket sSocket = null;
+    private EventLogger logger;
 
     //joystick variables
     RelativeLayout layout_joystick_left, layout_joystick_right;
@@ -233,6 +241,7 @@ public class Main extends Activity implements IVideoPlayer {
                 //checks to see if the joystick is in the throttle region
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) < 60) {
+                    if(arg1.getAction() == MotionEvent.ACTION_DOWN) logger.logEvent(AC_DATA.AircraftData, EventLogger.YAW_THROTTLE_START);
                     if(js1.getY()>30 && belowTakeoffAltitude()) AC_DATA.throttle = 84;
                     else if(js1.getY()>30 && belowAltitude()) AC_DATA.throttle = 81;
                     else if(js1.getY()<-30) AC_DATA.throttle = 40;
@@ -241,11 +250,13 @@ public class Main extends Activity implements IVideoPlayer {
                 //checks to see if the joystick is in the yaw region
                 else if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE) && Math.abs(js1.getX()) >= 72) {
+                    if(arg1.getAction() == MotionEvent.ACTION_DOWN) logger.logEvent(AC_DATA.AircraftData, EventLogger.YAW_THROTTLE_START);
                     if(js1.getX()>0) AC_DATA.yaw = 10;      //right button for yaw
                     if(js1.getX()<0) AC_DATA.yaw = -10;     //left button for yaw
                 }
                 //reset value of yaw but not throttle when lifting up
                 else if(arg1.getAction() == MotionEvent.ACTION_UP) {
+                    logger.logEvent(AC_DATA.AircraftData, EventLogger.YAW_THROTTLE_END);
                     AC_DATA.yaw = 0;
 					AC_DATA.throttle = 63;
                 }
@@ -259,6 +270,7 @@ public class Main extends Activity implements IVideoPlayer {
                 js2.drawStick(arg1);
                 if((arg1.getAction() == MotionEvent.ACTION_DOWN
                         || arg1.getAction() == MotionEvent.ACTION_MOVE)) {
+                    if(arg1.getAction() == MotionEvent.ACTION_DOWN) logger.logEvent(AC_DATA.AircraftData, EventLogger.ROLL_PITCH_START);
                     currentPosition = mMap1.getProjection().toScreenLocation(convert_to_lab(AC_DATA.AircraftData.Position));
                     if(nearWall(currentPosition, DRONE_LENGTH, DISTANCE_FROM_WALL)){
                         multiplier = 2.0f;
@@ -274,6 +286,7 @@ public class Main extends Activity implements IVideoPlayer {
                 }
                 //reset both values to zero when lifting up or in central zone
                 else if(arg1.getAction() == MotionEvent.ACTION_UP) {
+                    logger.logEvent(AC_DATA.AircraftData, EventLogger.ROLL_PITCH_END);
                     AC_DATA.roll = 0;
                     AC_DATA.pitch = 0;
                 }
@@ -387,6 +400,77 @@ public class Main extends Activity implements IVideoPlayer {
 
             }
         });
+    }
+
+    private void launch_file_dialog(){
+        AlertDialog.Builder fileDialog = new AlertDialog.Builder(Main.this);
+        LinearLayout dialogLayout = new LinearLayout(this);
+        dialogLayout.setOrientation(LinearLayout.HORIZONTAL);
+        dialogLayout.setGravity(Gravity.CENTER_HORIZONTAL);
+
+        // Create a drop down menu of all possible user ids
+        final Spinner userId = new Spinner(this);
+        final List<String> userIdSelections = new ArrayList<>();
+        for(int i = 1; i<MAX_USER_ID; i++){
+            userIdSelections.add(Integer.toString(i));
+        }
+
+        ArrayAdapter<String> userIdDataAdapter =
+                new ArrayAdapter<>(
+                        this,
+                        android.R.layout.simple_spinner_dropdown_item,
+                        userIdSelections);
+        userId.setAdapter(userIdDataAdapter);
+
+        // Create a drop down menu of the experimental groups
+        final Spinner experimentalGroups = new Spinner(this);
+        final List<String> groupSelections = new ArrayList<>();
+        groupSelections.add("Group_1");
+        groupSelections.add("Group_2");
+        groupSelections.add("Group_3");
+
+        ArrayAdapter<String> groupDataAdapter =
+                new ArrayAdapter<>(
+                        this,
+                        android.R.layout.simple_spinner_dropdown_item,
+                        groupSelections);
+        experimentalGroups.setAdapter(groupDataAdapter);
+
+        // Create a drop down menu of the modules
+        final Spinner modules = new Spinner(this);
+        final List<String> moduleSelections = new ArrayList<>();
+        moduleSelections.add("Module_3");
+        moduleSelections.add("Module_4");
+        moduleSelections.add("Module_5");
+        moduleSelections.add("Module_6");
+        moduleSelections.add("Checkride");
+        moduleSelections.add("Experiment");
+
+        ArrayAdapter<String> moduleDataAdapter =
+                new ArrayAdapter<>(
+                        this,
+                        android.R.layout.simple_spinner_dropdown_item,
+                        moduleSelections);
+        modules.setAdapter(moduleDataAdapter);
+
+        dialogLayout.addView(userId);
+        dialogLayout.addView(experimentalGroups);
+        dialogLayout.addView(modules);
+
+        fileDialog.setTitle("Choose Experiment Parameters")
+                .setMessage("Choose the user ID, the module being tested, and the experimental group.")
+                .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        logger = new EventLogger(
+                                "manual" + userId.getSelectedItem() + "_" +
+                                        experimentalGroups.getSelectedItem() + "_" +
+                                        modules.getSelectedItem() + ".csv");
+                    }
+                }).create();
+        fileDialog.setView(dialogLayout);
+        fileDialog.show();
+
     }
 
     private void blockMapInteraction() {
@@ -686,6 +770,8 @@ public class Main extends Activity implements IVideoPlayer {
 
         TelemetryAsyncTask = new ReadTelemetry();
         TelemetryAsyncTask.execute();
+
+        launch_file_dialog();
     }
 
     protected void onDestroy() {
