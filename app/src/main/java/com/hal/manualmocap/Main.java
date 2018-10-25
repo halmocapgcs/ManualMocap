@@ -661,67 +661,6 @@ public class Main extends Activity implements IVideoPlayer {
         int topBound = currentPosition.y - droneSize;
         int bottomBound = currentPosition.y + droneSize;
 
-        //garage door
-        if(rightBound >= 700-distanceFromWall) return true;
-
-        //bottom wall
-        if(bottomBound >= 580-distanceFromWall && leftBound >= 434) return true;
-
-        //bottom barrels
-        if(leftBound <= 434 + distanceFromWall && bottomBound >= 510 - distanceFromWall) return true;
-
-        //wall by bottom barrels
-        if(((leftBound >= 358 - distanceFromWall && leftBound <=358+distanceFromWall) ||
-                (rightBound >= 358 - distanceFromWall && rightBound <=358+distanceFromWall))
-                && bottomBound >= 332 - distanceFromWall) return true;
-
-        //wall near climbing wall
-        if(leftBound >= 67 && rightBound <= 358 && bottomBound >= 417 - distanceFromWall) return true;
-
-        //wall next to common room
-        if(leftBound <= 67 + distanceFromWall) return true;
-
-        //upper wall
-        if(topBound <= 59 + distanceFromWall) return true;
-
-        //top barrels
-        if(topBound <= 120 + distanceFromWall && leftBound >= 358 && rightBound <=454) return true;
-
-        //control room
-        if(topBound <= 332 + distanceFromWall && rightBound >=449-distanceFromWall) return true;
-
-        //right tunnel wall
-        if(rightBound >= 123 - distanceFromWall && rightBound <= 123 + distanceFromWall
-                && topBound <= 338 && bottomBound >= 228) return true;
-
-        //opposite side of right tunnel wall
-        if(leftBound <= 123 + distanceFromWall && leftBound >= 123 + distanceFromWall
-                && topBound <= 338 && bottomBound >= 228) return true;
-
-        //middle horizontal wall, bottom
-        if(topBound <= 228 + distanceFromWall && topBound >= 228 - distanceFromWall
-                && leftBound >= 123 && leftBound <=358) return true;
-
-        //middle horizontal wall, top
-        if(bottomBound >= 220 -distanceFromWall && bottomBound <= 220 + distanceFromWall
-                && leftBound >= 123 && rightBound <= 358) return true;
-
-        //bottom portion of right wall, left
-        if(rightBound >= 358 - distanceFromWall && rightBound <= 358 + distanceFromWall
-                && bottomBound <= 228 && bottomBound >= 160) return true;
-
-        //bottom portion of right wall, right
-        if(leftBound >= 358 - distanceFromWall && leftBound <= 358 + distanceFromWall
-                && bottomBound <= 228 && bottomBound >= 160) return true;
-
-        //top portion of right wall, left
-        if(rightBound >= 353 - distanceFromWall && rightBound <= 353 + distanceFromWall
-                && topBound <= 120) return true;
-
-        //doorway
-        if(currentPosition.x>= 358 -distanceFromWall && currentPosition.x<=358 + distanceFromWall
-                && (topBound<=120 || bottomBound>=160)) return true;
-
         return false;
     }
 
