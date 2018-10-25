@@ -134,7 +134,12 @@ public class Main extends Activity implements IVideoPlayer {
     private GoogleMap mMap1, mMap2;
     private GroundOverlay trueMap1, trueMap2;
     private int mapIndex = 0;
-    private int[] mapImages = {R.drawable.modulezone_manual, R.drawable.trainingzone_manual, R.drawable.croppedexperimentzone};
+    private int[] mapImages = {
+            R.drawable.empty_room,
+            R.drawable.check_ride,
+            R.drawable.experiment,
+            R.drawable.check_ride_height,
+            R.drawable.experiment_height};
     public Point currentPosition;
     public Telemetry AC_DATA;
 
@@ -207,11 +212,11 @@ public class Main extends Activity implements IVideoPlayer {
         BitmapDescriptor labImage = BitmapDescriptorFactory.fromResource(mapImages[mapIndex]);
         trueMap1 = mMap1.addGroundOverlay(new GroundOverlayOptions()
                 .image(labImage)
-                .position(LAB_ORIGIN, (float) 35.05)
+                .position(LAB_ORIGIN, (float) 35.23)
                 .bearing(90.0f));
         trueMap2 = mMap2.addGroundOverlay(new GroundOverlayOptions()
                 .image(labImage)
-                .position(LAB_ORIGIN, (float) 35.05)
+                .position(LAB_ORIGIN, (float) 35.23)
                 .bearing(90.0f));
 
         blockMapInteraction();
@@ -323,7 +328,7 @@ public class Main extends Activity implements IVideoPlayer {
         map_swap.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                if(++mapIndex > 2) mapIndex = 0;
+                if(++mapIndex >= mapImages.length) mapIndex = 0;
                 BitmapDescriptor newLabImage = BitmapDescriptorFactory.fromResource(mapImages[mapIndex]);
                 trueMap1.setImage(newLabImage);
                 trueMap2.setImage(newLabImage);

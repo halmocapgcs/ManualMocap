@@ -44,13 +44,13 @@
             <fragment xmlns:android="http://schemas.android.com/apk/res/android"
                       android:id="@+id/map"
                       android:layout_width="580dp"
-                      android:layout_height="416.25dp"
+                      android:layout_height="418dp"
                       android:layout_centerHorizontal="true"
                       android:name="com.google.android.gms.maps.MapFragment"/>
 
                 <FrameLayout
                     android:layout_width="580dp"
-                    android:layout_height="416.5dp"
+                    android:layout_height="418dp"
                     android:fitsSystemWindows="false"
                     android:layout_centerHorizontal="true">
 
@@ -64,7 +64,7 @@
                         <SurfaceView
                             android:id="@+id/player_surface"
                             android:layout_width="580dp"
-                            android:layout_height="416.5dp"
+                            android:layout_height="418dp"
                             android:layout_centerHorizontal="true"
                             />
                     </FrameLayout>
@@ -181,7 +181,7 @@
                 android:layout_alignParentLeft="true">
             <FrameLayout
                 android:layout_width="290dp"
-                android:layout_height="208dp"
+                android:layout_height="209dp"
                 android:fitsSystemWindows="false"
                 android:layout_alignParentLeft="true">
 
@@ -196,7 +196,7 @@
                     <SurfaceView
                         android:id="@+id/player_surface_small"
                         android:layout_width="290dp"
-                        android:layout_height="208dp"
+                        android:layout_height="209dp"
                         android:layout_alignParentLeft="true"
                         />
                 </FrameLayout>
