@@ -18,7 +18,7 @@ public class EventLogger implements Serializable{
     public static final int ROLL_PITCH_START = 2;
     public static final int ROLL_PITCH_END = 3;
 
-    private static final String SD_PATH = "/storage/79CA-1EE6/Android/data/com.hal.manualmocap/files/";
+    private static final String SD_PATH = "/storage/A9B1-0805/Android/data/com.hal.manualmocap/files/";
 
     private FileWriter writer;
 

@@ -191,6 +191,17 @@ public class Main extends Activity implements IVideoPlayer {
         //initialize map options
         GoogleMapOptions mMapOptions = new GoogleMapOptions();
 
+        mMap1.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                Point point = mMap1.getProjection().toScreenLocation(latLng);
+                Log.d("location","x:    " + point.x + "   y:     " + point.y);
+                if(point.y == 313 || point.y == 312 || point.y == 314){
+                    Log.d("location","x:    " + latLng.latitude + "   y:     " + latLng.longitude);
+                }
+            }
+        });
+
         mMap1.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
         mMap2.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
         mMap1.moveCamera(CameraUpdateFactory.newLatLngZoom(LAB_ORIGIN, 50));
@@ -208,7 +219,6 @@ public class Main extends Activity implements IVideoPlayer {
         mMap1.moveCamera(CameraUpdateFactory.newCameraPosition(rotated1));
         mMap2.moveCamera(CameraUpdateFactory.newCameraPosition(rotated2));
 
-        Log.d("Maptime", "Begin overlay load");
         BitmapDescriptor labImage = BitmapDescriptorFactory.fromResource(mapImages[mapIndex]);
         trueMap1 = mMap1.addGroundOverlay(new GroundOverlayOptions()
                 .image(labImage)
@@ -433,6 +443,7 @@ public class Main extends Activity implements IVideoPlayer {
         groupSelections.add("Group_1");
         groupSelections.add("Group_2");
         groupSelections.add("Group_3");
+        groupSelections.add("Group_4");
 
         ArrayAdapter<String> groupDataAdapter =
                 new ArrayAdapter<>(
@@ -626,8 +637,8 @@ public class Main extends Activity implements IVideoPlayer {
         double oldLat = position.latitude;
         double oldLong = position.longitude;
 
-        double newLat = (1.75*oldLat - 27.00401175);
-        double newLong = (1.777778*oldLong + 61.39861865);
+        double newLat = (3.83*oldLat - 101.8953981);
+        double newLong = (4.05*oldLong + 240.7700822);
 
         LatLng newPosition = new LatLng(newLat, newLong);
         return newPosition;
